@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Entry point for the Agent Architecture Kit CLI.
+# Thin wrapper around the pip-installed (editable) console script, kept at
+# this exact path because .claude/settings.json and ~/.codex/config.toml
+# in every consumer repo hardcode "bin/aak" as the hook command.
 set -euo pipefail
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-export PYTHONPATH="$KIT_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
-exec "$KIT_ROOT/.venv/bin/python" -m aak "$@"
+exec "$KIT_ROOT/.venv/bin/aak" "$@"
