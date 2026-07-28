@@ -226,6 +226,37 @@ def cmd_hook_stop(args) -> int:
     return 0
 
 
+def cmd_scan_run(args) -> int:
+    # imported lazily, same rationale as cmd_mcp_serve: keeps `guard pretool`'s
+    # hot path (runs on every tool call) from paying import cost for adapters
+    # it never uses.
+    from .scan.adapters import ADAPTERS
+    from .scan.core import run_scan
+
+    adapter_cls = ADAPTERS.get(args.language)
+    if adapter_cls is None:
+        print(f"error: unknown language '{args.language}' (choices: {', '.join(sorted(ADAPTERS))})", file=sys.stderr)
+        return 1
+
+    repo_root = Path(args.repo_root).resolve()
+    try:
+        manifest = load_manifest(repo_root)
+    except ManifestError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+
+    md_path = repo_root / "docs" / "ARCHITECTURE_MAP.md"
+    return run_scan(
+        repo_root=repo_root,
+        repo_id=manifest.repo_id,
+        source_roots=manifest.source_roots,
+        adapter=adapter_cls(),
+        out_json=manifest.map_path,
+        md_path=md_path,
+        check_mode=args.check,
+    )
+
+
 def cmd_mcp_serve(args) -> int:
     # imported lazily: the mcp SDK is a heavy dependency (starlette/uvicorn/etc)
     # that every other subcommand (esp. `guard pretool`, run on every tool call
@@ -292,6 +323,19 @@ def build_parser() -> argparse.ArgumentParser:
     orchestrate.add_argument("--ttl-hours", type=int, default=24)
     orchestrate.add_argument("--issue", type=int, default=None)
     orchestrate.set_defaults(func=cmd_orchestrate)
+
+    scan = sub.add_parser("scan", help="architecture scanner commands")
+    scan_sub = scan.add_subparsers(dest="scan_command", required=True)
+    scan_run = scan_sub.add_parser(
+        "run",
+        help="scan source tree, write or --check ARCHITECTURE_MAP.json + .md",
+    )
+    scan_run.add_argument("--repo-root", required=True, help="path to the repo to scan")
+    # kept as an explicit flag (not manifest-driven auto-detect) until a second
+    # consumer needs auto-detect badly enough to justify a project.yaml schema change
+    scan_run.add_argument("--language", required=True, choices=["typescript", "python"])
+    scan_run.add_argument("--check", action="store_true")
+    scan_run.set_defaults(func=cmd_scan_run)
 
     mcp_parser = sub.add_parser("mcp", help="MCP server commands")
     mcp_sub = mcp_parser.add_subparsers(dest="mcp_command", required=True)
