@@ -1,0 +1,31 @@
+# Validated against schemas/project.schema.json. Replace every <PLACEHOLDER>,
+# then delete this comment and save as .agent-architecture/project.yaml.
+schemaVersion: "1.0"
+repoId: "<org>/<repo>"
+tier: 1
+defaultBranch: "main"
+kitVersion: "1.0.0"
+
+sourceRoots:
+  - <src-dir-1>
+  - <src-dir-2>
+
+protectedDomains:
+  - <domain-1>
+  - <domain-2>
+
+generatedPaths:
+  - .next/**
+  - coverage/**
+  - node_modules/**
+
+validation:
+  lint: "<lint command>"
+  typecheck: "<typecheck command>"
+  test: "<test command>"
+  build: "<build command>"
+
+architecture:
+  map: "docs/architecture/ARCHITECTURE_MAP.json"
+  incidents: "docs/architecture/DUPLICATION_INCIDENTS.json"
+  adrs: "docs/adr"
