@@ -111,14 +111,6 @@ def search_capability(repoId: str, query: str, limit: int = 20) -> list[dict]:
 
 
 @mcp.tool()
-def find_component(query: str, limit: int = 20) -> list[dict]:
-    """Deprecated alias for search_capability without repoId validation.
-    Kept for backward compatibility; prefer search_capability.
-    """
-    return _search_components(query, limit)
-
-
-@mcp.tool()
 def get_component(repoId: str, componentId: str) -> dict:
     """Return the full architecture-map entry for a component by exact path.
 
@@ -133,14 +125,6 @@ def get_component(repoId: str, componentId: str) -> dict:
     if err:
         return err
     return _get_component(componentId)
-
-
-@mcp.tool()
-def component_detail(path: str) -> dict:
-    """Deprecated alias for get_component without repoId validation.
-    Kept for backward compatibility; prefer get_component.
-    """
-    return _get_component(path)
 
 
 @mcp.tool()
@@ -254,14 +238,6 @@ def get_map_status(repoId: str) -> dict:
     err = _check_repo_id(repoId)
     if err:
         return err
-    return _map_status()
-
-
-@mcp.tool()
-def map_status() -> dict:
-    """Deprecated alias for get_map_status without repoId validation.
-    Kept for backward compatibility; prefer get_map_status.
-    """
     return _map_status()
 
 
