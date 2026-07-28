@@ -123,3 +123,36 @@ the final boundary.
   therefore **unverified** - the `gemini` adapter in this kit is a stub, not
   a tested implementation. Do not rely on it for a Gemini-as-executor
   scenario without re-verifying.
+
+## KVM4 infra reaudit (2026-07-28)
+
+The master plan's swap/build-lock sizing (8-16GB swap, N concurrent heavy
+tasks) was calculated for a KVM8 the plan originally assumed - the VPS
+actually contracted and provisioned is a KVM4 (half the specs, see Session
+#474 of `NexusLab/SESSION_STATE.md` for the downgrade reasoning). Real specs
+confirmed live via `nproc`/`free -h`/`df -h`:
+
+- 4 vCPU, 15GB RAM, **0 swap** (until this finding), 193GB disk (183GB free)
+
+Zero swap on a 4-vCPU box running a self-hosted CI runner plus interactive
+Claude Code/Codex sessions is a real risk, not theoretical - this same
+session hit real single-runner contention (multiple PRs' CI jobs serialized,
+one job queued ~20 minutes behind another). Actions taken, both low-risk
+(reversible, no VPS resize, well within the 183GB free disk already paid
+for):
+
+- 4GB swapfile created (`fallocate`+`mkswap`+`swapon`), persisted via
+  `/etc/fstab` (`/swapfile none swap sw 0 0`).
+- `vm.swappiness` set to 10 (from the Linux default of 60) via
+  `/etc/sysctl.d/99-swappiness.conf` - prefer RAM until genuinely needed,
+  swap is a safety net against OOM-kill during a heavy `npm ci`/build, not a
+  primary memory extension for routine workloads.
+- `bin/with-build-lock.sh` (flock semaphore, see README) added as a
+  complementary mitigation for the CI-queue-contention half of the problem;
+  it doesn't fix the queue itself, just keeps *manual* heavy commands from
+  compounding it.
+
+Not done, and deliberately out of scope here: resizing the VPS itself (would
+cost money, needs an explicit ROI conversation per DIRETRIZES) and fixing
+the CI queue depth itself (more runners, or job-level concurrency limits in
+each workflow - a bigger change than this reaudit's scope).
