@@ -7,11 +7,16 @@ intentional: noise on every unrelated prompt would just get tuned out and
 ignored over time, defeating the point.
 """
 import json
+import subprocess
+import time
 from pathlib import Path
 
 from . import decision as decision_mod
 from .manifest import ManifestError, load_manifest
-from .paths import find_repo_root
+from .paths import find_repo_root, locks_dir
+
+MAP_REGEN_DEBOUNCE_SECONDS = 30
+SOURCE_EXTENSIONS = (".ts", ".tsx")
 
 
 def _load_incidents(manifest) -> list[dict]:
@@ -80,3 +85,74 @@ def prompt_submit_context(cwd: Path, prompt: str) -> str | None:
     if not hits:
         return None
     return "[agent-architecture-kit] " + " | ".join(hits)
+
+
+def _map_regen_debounce_path(repo_id: str) -> Path:
+    return locks_dir() / f"map-regen-debounce-{repo_id.replace('/', '__')}.json"
+
+
+def _recently_regenerated(repo_id: str) -> bool:
+    path = _map_regen_debounce_path(repo_id)
+    if not path.is_file():
+        return False
+    try:
+        last_run_at = json.loads(path.read_text())["lastRunAt"]
+    except (json.JSONDecodeError, KeyError, OSError, ValueError):
+        return False
+    return (time.time() - last_run_at) < MAP_REGEN_DEBOUNCE_SECONDS
+
+
+def _record_map_regen(repo_id: str) -> None:
+    path = _map_regen_debounce_path(repo_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"lastRunAt": time.time()}))
+
+
+def _has_uncommitted_source_changes(repo_root: Path) -> bool:
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), "status", "--porcelain"],
+        capture_output=True, text=True, timeout=15,
+    )
+    if result.returncode != 0:
+        return False
+    for line in result.stdout.splitlines():
+        if not line.strip():
+            continue
+        changed_path = line[3:].strip().split(" -> ")[-1]
+        if changed_path.endswith(SOURCE_EXTENSIONS):
+            return True
+    return False
+
+
+def maybe_regen_map(cwd: Path) -> str | None:
+    """Stop hook: regenerate the architecture map if source changed since the
+    last regen, at most once per MAP_REGEN_DEBOUNCE_SECONDS. Reuses the repo's
+    own scripts/agent-architecture/scan_architecture.py (already tested, wired
+    into CI's architecture-drift check) rather than reimplementing scanning
+    logic here - this function only decides whether and how often to run it.
+    """
+    repo_root = find_repo_root(cwd)
+    if repo_root is None:
+        return None
+    try:
+        manifest = load_manifest(repo_root)
+    except ManifestError:
+        return None
+
+    scanner = repo_root / "scripts" / "agent-architecture" / "scan_architecture.py"
+    if not scanner.is_file():
+        return None
+
+    if not _has_uncommitted_source_changes(repo_root):
+        return None
+    if _recently_regenerated(manifest.repo_id):
+        return None
+
+    result = subprocess.run(
+        ["python3", str(scanner), str(repo_root)],
+        capture_output=True, text=True, timeout=120,
+    )
+    _record_map_regen(manifest.repo_id)
+    if result.returncode != 0:
+        return f"[agent-architecture-kit] map regen failed: {result.stderr.strip()[:500]}"
+    return "[agent-architecture-kit] architecture map regenerated (uncommitted source changes detected)."

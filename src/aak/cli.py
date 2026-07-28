@@ -211,6 +211,21 @@ def cmd_hook_prompt_submit(args) -> int:
     return 0
 
 
+def cmd_hook_stop(args) -> int:
+    # Advisory only: any error here must never block a session from ending.
+    try:
+        payload = json.load(sys.stdin)
+    except json.JSONDecodeError:
+        payload = {}
+    try:
+        message = hooks_mod.maybe_regen_map(_hook_cwd(payload))
+    except Exception:
+        return 0
+    if message:
+        print(message, file=sys.stderr)
+    return 0
+
+
 def cmd_mcp_serve(args) -> int:
     # imported lazily: the mcp SDK is a heavy dependency (starlette/uvicorn/etc)
     # that every other subcommand (esp. `guard pretool`, run on every tool call
@@ -297,6 +312,10 @@ def build_parser() -> argparse.ArgumentParser:
         "prompt-submit",
         help="UserPromptSubmit advisory context: protected-domain/known-incident keyword match",
     ).set_defaults(func=cmd_hook_prompt_submit)
+    hook_sub.add_parser(
+        "stop",
+        help="Stop hook: debounced incremental architecture-map regen if source changed",
+    ).set_defaults(func=cmd_hook_stop)
 
     return parser
 
