@@ -16,6 +16,9 @@ work first, not just a new MCP tool.
 """
 from __future__ import annotations
 import json
+import re
+import subprocess
+from datetime import datetime, timezone
 from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
@@ -26,6 +29,8 @@ mcp = FastMCP("architecture-map")
 
 _manifest: ProjectManifest | None = None
 _repo_root: Path | None = None
+SUPPORTED_INDEX_SCHEMA_VERSIONS = {"1.0"}
+SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
 
 def _get_manifest() -> ProjectManifest:
@@ -39,6 +44,95 @@ def _read_map() -> dict:
     manifest = _get_manifest()
     with open(manifest.map_path, encoding="utf-8") as f:
         return json.load(f)
+
+
+def _git_value(*args: str) -> str | None:
+    if _repo_root is None:
+        return None
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(_repo_root), *args],
+            capture_output=True, text=True, timeout=5, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    value = result.stdout.strip()
+    return value if result.returncode == 0 and value else None
+
+
+def _index_status(expected_commit: str | None = None) -> dict:
+    """Compute a fail-closed freshness contract without exposing repo content."""
+    manifest = _get_manifest()
+    observed = _git_value("rev-parse", "HEAD")
+    expected = expected_commit or observed
+    branch = _git_value("branch", "--show-current") or "detached"
+    base = {
+        "repository": manifest.repo_id,
+        "branch": branch,
+        "expectedCommit": expected,
+        "observedCommit": observed,
+        "indexedCommit": None,
+        "sourceSha": None,
+        "indexedAt": None,
+        "schemaVersion": None,
+        "indexedFileCount": None,
+        "componentCount": None,
+        "includedScope": list(manifest.source_roots),
+        "excludedScope": [".git", "node_modules", ".next", "coverage", "dist", "build", "__pycache__", ".venv", "venv"],
+        "freshness": "unknown",
+        "reason": "index metadata could not be verified",
+        "checkedAt": datetime.now(timezone.utc).isoformat(),
+    }
+    marker = manifest.map_path.with_suffix(manifest.map_path.suffix + ".indexing")
+    if marker.exists():
+        return {**base, "freshness": "indexing", "reason": "an isolated index build is in progress"}
+    try:
+        data = _read_map()
+    except (OSError, json.JSONDecodeError) as exc:
+        return {**base, "freshness": "failed", "reason": f"index backend unavailable or invalid: {type(exc).__name__}"}
+    source_sha = data.get("sourceSha")
+    schema = data.get("schemaVersion")
+    components = data.get("components")
+    status = {
+        **base,
+        "indexedCommit": source_sha,
+        "sourceSha": source_sha,
+        "indexedAt": data.get("generatedAt"),
+        "schemaVersion": schema,
+        "indexedFileCount": len(components) if isinstance(components, list) else None,
+        "componentCount": len(components) if isinstance(components, list) else None,
+        "includedScope": data.get("sourceRoots", base["includedScope"]),
+        "coverage": data.get("coverage"),
+        "extractionMethod": data.get("extractionMethod"),
+    }
+    if schema not in SUPPORTED_INDEX_SCHEMA_VERSIONS:
+        return {**status, "freshness": "incompatible", "reason": f"unsupported index schema version: {schema!r}"}
+    if data.get("repoId") != manifest.repo_id:
+        return {**status, "freshness": "incompatible", "reason": "index repository does not match the configured project"}
+    if not isinstance(components, list):
+        return {**status, "freshness": "incompatible", "reason": "index components field is not an array"}
+    if not isinstance(source_sha, str) or not SHA_RE.fullmatch(source_sha):
+        return {**status, "freshness": "unknown", "reason": "index sourceSha is absent or invalid"}
+    if not isinstance(expected, str) or not SHA_RE.fullmatch(expected):
+        return {**status, "freshness": "unknown", "reason": "expected commit is absent or invalid"}
+    if source_sha != expected:
+        return {**status, "freshness": "stale", "reason": "indexed commit does not match the expected commit"}
+    return {**status, "freshness": "fresh", "reason": "indexed commit matches the expected commit"}
+
+
+def _freshness_error(expected_commit: str | None = None) -> dict | None:
+    status = _index_status(expected_commit)
+    if status["freshness"] == "fresh":
+        return None
+    return {
+        "error": {
+            "code": "INDEX_NOT_FRESH",
+            "message": "architectural conclusion blocked because the index is not fresh",
+            "retryable": status["freshness"] in {"indexing", "failed", "stale"},
+        },
+        "index": status,
+        "historicalOnly": status["freshness"] == "stale",
+    }
 
 
 def _read_incidents() -> list:
@@ -90,7 +184,7 @@ def _get_component(path: str) -> dict:
 
 
 @mcp.tool()
-def search_capability(repoId: str, query: str, limit: int = 20) -> list[dict]:
+def search_capability(repoId: str, query: str, limit: int = 20, expectedCommit: str | None = None) -> list[dict]:
     """Search architecture-map components by substring in path or exports.
 
     Use BEFORE writing any new helper, route, or component to confirm
@@ -107,11 +201,14 @@ def search_capability(repoId: str, query: str, limit: int = 20) -> list[dict]:
     err = _check_repo_id(repoId)
     if err:
         return [err]
+    freshness_err = _freshness_error(expectedCommit)
+    if freshness_err:
+        return [freshness_err]
     return _search_components(query, limit)
 
 
 @mcp.tool()
-def get_component(repoId: str, componentId: str) -> dict:
+def get_component(repoId: str, componentId: str, expectedCommit: str | None = None) -> dict:
     """Return the full architecture-map entry for a component by exact path.
 
     Args:
@@ -124,11 +221,14 @@ def get_component(repoId: str, componentId: str) -> dict:
     err = _check_repo_id(repoId)
     if err:
         return err
+    freshness_err = _freshness_error(expectedCommit)
+    if freshness_err:
+        return freshness_err
     return _get_component(componentId)
 
 
 @mcp.tool()
-def check_duplication(description: str) -> dict:
+def check_duplication(description: str, expectedCommit: str | None = None) -> dict:
     """Check whether a described capability likely already exists.
 
     Cross-references known duplication incidents (business terms / accepted
@@ -144,6 +244,9 @@ def check_duplication(description: str) -> dict:
         matchedIncident, when present, points at the canonical target
         (path + symbol) that should be reused instead of rebuilt.
     """
+    freshness_err = _freshness_error(expectedCommit)
+    if freshness_err:
+        return freshness_err
     incidents = _read_incidents()
     desc_lower = description.lower()
 
@@ -169,12 +272,15 @@ def check_duplication(description: str) -> dict:
 
 
 @mcp.tool()
-def list_adrs() -> list[dict]:
+def list_adrs(expectedCommit: str | None = None) -> list[dict]:
     """List the repo's Architecture Decision Records.
 
     Returns:
         List of {slug, title, path}.
     """
+    freshness_err = _freshness_error(expectedCommit)
+    if freshness_err:
+        return [freshness_err]
     adr_dir = _adr_dir()
     if not adr_dir.is_dir():
         return []
@@ -196,7 +302,7 @@ def list_adrs() -> list[dict]:
 
 
 @mcp.tool()
-def get_adr(slug: str) -> str:
+def get_adr(slug: str, expectedCommit: str | None = None) -> str | dict:
     """Return the full markdown content of an ADR by slug.
 
     Args:
@@ -205,25 +311,17 @@ def get_adr(slug: str) -> str:
     Returns:
         Markdown content, or an "error: ..." string if not found.
     """
+    freshness_err = _freshness_error(expectedCommit)
+    if freshness_err:
+        return freshness_err
     path = _adr_dir() / f"{slug}.md"
     if not path.is_file():
         return f"error: ADR not found: {slug}"
     return path.read_text(encoding="utf-8")
 
 
-def _map_status() -> dict:
-    data = _read_map()
-    return {
-        "generatedAt": data.get("generatedAt"),
-        "sourceSha": data.get("sourceSha"),
-        "coverage": data.get("coverage"),
-        "componentCount": len(data.get("components", [])),
-        "extractionMethod": data.get("extractionMethod"),
-    }
-
-
 @mcp.tool()
-def get_map_status(repoId: str) -> dict:
+def get_map_status(repoId: str, expectedCommit: str | None = None) -> dict:
     """Return architecture-map metadata: when it was generated, from which
     commit, coverage, and component count. Use to judge whether the map
     might be stale before trusting an answer from the other tools.
@@ -238,11 +336,11 @@ def get_map_status(repoId: str) -> dict:
     err = _check_repo_id(repoId)
     if err:
         return err
-    return _map_status()
+    return _index_status(expectedCommit)
 
 
 @mcp.tool()
-def verify_references(repoId: str, paths: list[str], symbols: list[str]) -> dict:
+def verify_references(repoId: str, paths: list[str], symbols: list[str], expectedCommit: str | None = None) -> dict:
     """Cross-check cited file paths and exported symbols against the current
     architecture map. Use to validate evidence before citing it in a Codex
     audit or Gemini brief -- "not found" without recorded search coverage is
@@ -260,6 +358,9 @@ def verify_references(repoId: str, paths: list[str], symbols: list[str]) -> dict
     err = _check_repo_id(repoId)
     if err:
         return err
+    freshness_err = _freshness_error(expectedCommit)
+    if freshness_err:
+        return freshness_err
 
     data = _read_map()
     components = data.get("components", [])
