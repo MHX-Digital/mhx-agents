@@ -257,6 +257,30 @@ def cmd_scan_run(args) -> int:
     )
 
 
+def cmd_portfolio_scan(args) -> int:
+    from .portfolio import scan_portfolio
+
+    root = Path(args.root).resolve()
+    results = scan_portfolio(root)
+
+    if args.json:
+        print(json.dumps([r.__dict__ for r in results], indent=2))
+        return 0
+
+    if not results:
+        print(f"no project directories found under {root}")
+        return 0
+
+    results_sorted = sorted(results, key=lambda r: r.score, reverse=True)
+    name_w = max(len(r.name) for r in results_sorted)
+    lang_w = max(len(r.language) for r in results_sorted)
+    for r in results_sorted:
+        flags = "".join(k[0].upper() if v else "-" for k, v in r.signals.items())
+        print(f"{r.score:3d}  {r.name.ljust(name_w)}  {r.language.ljust(lang_w)}  [{flags}]")
+    print("\nflags: A=aak manifest, S=structured docs, T=tests, C=CI, R=recent commit (30d)")
+    return 0
+
+
 def cmd_mcp_serve(args) -> int:
     # imported lazily: the mcp SDK is a heavy dependency (starlette/uvicorn/etc)
     # that every other subcommand (esp. `guard pretool`, run on every tool call
@@ -336,6 +360,16 @@ def build_parser() -> argparse.ArgumentParser:
     scan_run.add_argument("--language", required=True, choices=["typescript", "python"])
     scan_run.add_argument("--check", action="store_true")
     scan_run.set_defaults(func=cmd_scan_run)
+
+    portfolio = sub.add_parser("portfolio", help="portfolio inventory commands")
+    portfolio_sub = portfolio.add_subparsers(dest="portfolio_command", required=True)
+    portfolio_scan = portfolio_sub.add_parser(
+        "scan",
+        help="deterministic tier-scored inventory of a projects directory",
+    )
+    portfolio_scan.add_argument("--root", required=True, help="path to the projects directory to scan")
+    portfolio_scan.add_argument("--json", action="store_true", help="machine-readable JSON output")
+    portfolio_scan.set_defaults(func=cmd_portfolio_scan)
 
     mcp_parser = sub.add_parser("mcp", help="MCP server commands")
     mcp_sub = mcp_parser.add_subparsers(dest="mcp_command", required=True)
