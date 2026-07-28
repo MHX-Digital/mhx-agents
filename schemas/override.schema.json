@@ -11,7 +11,7 @@
   "properties": {
     "schemaVersion": { "type": "string" },
     "repoId": { "type": "string" },
-    "issue": { "type": "integer" },
+    "issue": { "type": "integer", "minimum": 1 },
     "scope": { "type": "string" },
     "reason": { "type": "string" },
     "createdAt": { "type": "string" },

@@ -6,7 +6,7 @@ theoretical shapes from the master plan design doc.
 import json
 
 import pytest
-from jsonschema import validate, ValidationError
+from jsonschema import Draft7Validator, validate, ValidationError
 
 from aak.paths import KIT_ROOT
 
@@ -31,6 +31,7 @@ def test_schema_file_is_valid_json_schema(name):
     schema = _load_schema(name)
     assert schema["$schema"] == "http://json-schema.org/draft-07/schema#"
     assert schema["$id"] == name
+    Draft7Validator.check_schema(schema)
 
 
 def test_architecture_map_accepts_real_scan_output():
@@ -115,6 +116,22 @@ def test_override_rejects_missing_issue():
     override = {
         "schemaVersion": "1.0",
         "repoId": "mhx/lexnotify",
+        "scope": "src/chat/**",
+        "reason": "Approved replacement after ADR-0042",
+        "createdAt": "2026-07-28T12:00:00+00:00",
+        "expiresAt": "2026-07-29T23:59:00-04:00",
+        "authorizationHash": "sha256:" + "a" * 64,
+    }
+    with pytest.raises(ValidationError):
+        validate(instance=override, schema=schema)
+
+
+def test_override_rejects_non_positive_issue():
+    schema = _load_schema("override.schema.json")
+    override = {
+        "schemaVersion": "1.0",
+        "repoId": "mhx/lexnotify",
+        "issue": 0,
         "scope": "src/chat/**",
         "reason": "Approved replacement after ADR-0042",
         "createdAt": "2026-07-28T12:00:00+00:00",
