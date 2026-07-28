@@ -1,0 +1,79 @@
+name: architecture-gate
+
+# Reusable workflow (master plan section 8.1 `ci/github/`, section 10.3
+# "deterministic gate"). A consumer repo calls it with:
+#
+#   jobs:
+#     architecture-gate:
+#       uses: MHX-Digital/agent-architecture-kit/ci/github/architecture-gate.yml@<pinned-ref>
+#       with:
+#         language: typescript   # or python
+#
+# Assumes the kit is already installed at a fixed path on the runner
+# (`/home/mhx/agent-architecture-kit`, matching the `.claude/settings.json`
+# hook-command convention documented in the kit README) rather than
+# pip-installing a private repo inside the job -- this kit isn't published,
+# and every consumer repo already runs on the same self-hosted runner
+# (`[self-hosted, linux]`) that has it. If that stops being true, replace
+# the `aak` calls below with a pinned `pip install` step first.
+#
+# What this checks, mapped to master plan section 10.3:
+# - architecture-schema  -> `aak verify` validates project.yaml + ARCHITECTURE_MAP.json
+# - architecture-drift   -> `aak verify --language <input>` reruns the scanner and diffs
+# - scope-verification   -> `aak verify --staged` against the PR diff (see intent-to-add step)
+# - secret-scan          -> gitleaks (swap for another scanner if the org already has one)
+# - architecture-duplication -> explicit no-op (see step below): no golden
+#   DUPLICATION_INCIDENTS.json corpus exists yet (README Scope note). This
+#   step exists so the gate visibly reports "not checked" instead of a
+#   consumer inferring duplication was verified because a job with that name
+#   passed.
+
+on:
+  workflow_call:
+    inputs:
+      language:
+        description: "Scanner language adapter to run for the drift check (typescript|python)"
+        required: true
+        type: string
+      aak-bin:
+        description: "Path to the aak console script on the runner"
+        required: false
+        type: string
+        default: "/home/mhx/agent-architecture-kit/bin/aak"
+
+jobs:
+  architecture-schema-and-drift:
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Mark PR-changed files as staged (scope-verification needs a real git-staged diff)
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          CHANGED=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD")
+          if [ -n "$CHANGED" ]; then
+            echo "$CHANGED" | xargs -r git add --intent-to-add --
+          fi
+
+      - name: aak verify (schema + drift + scope)
+        run: |
+          "${{ inputs.aak-bin }}" verify \
+            --language "${{ inputs.language }}" \
+            ${{ github.event_name == 'pull_request' && '--staged' || '' }}
+
+      - name: architecture-duplication (not implemented)
+        run: |
+          echo "architecture-duplication: no DUPLICATION_INCIDENTS.json golden corpus configured for this repo yet -- skipping, not passing. See agent-architecture-kit README Scope note." >&2
+
+  secret-scan:
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

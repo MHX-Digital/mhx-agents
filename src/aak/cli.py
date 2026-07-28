@@ -281,6 +281,19 @@ def cmd_portfolio_scan(args) -> int:
     return 0
 
 
+def cmd_verify(args) -> int:
+    from .verify import run_verify
+
+    repo_root = Path(args.repo_root).resolve() if args.repo_root else Path.cwd()
+    checks, exit_code = run_verify(repo_root, language=args.language, staged=args.staged)
+
+    for check in checks:
+        status = "OK" if check.passed else "FAIL"
+        print(f"[{status}] {check.name}: {check.detail}")
+
+    return exit_code
+
+
 def cmd_mcp_serve(args) -> int:
     # imported lazily: the mcp SDK is a heavy dependency (starlette/uvicorn/etc)
     # that every other subcommand (esp. `guard pretool`, run on every tool call
@@ -394,6 +407,16 @@ def build_parser() -> argparse.ArgumentParser:
         "stop",
         help="Stop hook: debounced incremental architecture-map regen if source changed",
     ).set_defaults(func=cmd_hook_stop)
+
+    verify = sub.add_parser(
+        "verify",
+        help="unified gate: manifest/map schema + drift + staged scope-check (what CI runs)",
+    )
+    verify.add_argument("--repo-root", default=None, help="path to the repo to verify (default: cwd)")
+    verify.add_argument("--language", default=None, choices=["typescript", "python"],
+                         help="run the architecture-drift check for this language (omit to skip it)")
+    verify.add_argument("--staged", action="store_true", help="also run the scope-verification check against staged files")
+    verify.set_defaults(func=cmd_verify)
 
     return parser
 
