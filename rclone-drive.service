@@ -1,0 +1,14 @@
+[Unit]
+Description=rclone mount for Google Drive (read-only, cached)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/agent-architecture-kit/bin/mount-drive.sh
+ExecStop=/bin/fusermount -uz %h/gdrive
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target
