@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "codex-review.schema.json",
   "title": "aak codex-review",
   "description": "Structured output for the automated Codex PR review job (master plan section 10.4). Shadow mode only in this rollout - never blocking, informational comment on the PR.",
   "type": "object",

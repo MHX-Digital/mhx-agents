@@ -1,0 +1,15 @@
+@AGENTS.md
+
+## Claude Code
+
+- You are the default executor for <REPO_NAME> work. `AGENTS.md` (imported above) is the
+  canonical shared instruction source -- its anti-duplication guard section applies to you.
+- A `PreToolUse` hook wired in `.claude/settings.json` calls `aak guard pretool --client claude`
+  before every `Write`/`Edit`/`Bash` call. A deny (exit code 2) is authoritative: don't retry the
+  same write, don't try to route around it through a shell command, and don't edit
+  `.claude/settings.json`, `.agent-architecture/`, or anything under `docs/architecture/` to make
+  the guard pass.
+- If a write in a protected domain is denied for lacking an active task decision, stop and tell
+  the user which domain and canonical target the guard cited, rather than guessing a workaround
+  path.
+- Writes outside the protected domains (most of the repo) are unaffected by this guard.

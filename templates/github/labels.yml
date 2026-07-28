@@ -1,0 +1,47 @@
+# Agent Architecture Kit -- canonical label set (master plan section 10.1).
+# Apply to a new Tier 1/2 repo with:
+#   gh label create <name> --repo <org>/<repo> --color <hex> --description "<description>"
+# (or any github-label-sync-style tool that reads this format).
+#
+# English names are canonical (repo docs/labels are English per project convention).
+# The first LexNotify-Web rollout (2026-07-28) used Portuguese verdict:* names
+# (verdict:novo/estender/duplicado/ambiguo) -- that repo's existing labels were left
+# alone rather than renamed under active use, but any *new* Tier 1/2 repo should use
+# this canonical set from the start.
+
+- name: "architecture:tier-1"
+  color: "0E8A16"
+  description: "Critical path, highest scrutiny (see .agent-architecture/project.yaml tier)"
+- name: "architecture:tier-2"
+  color: "FBCA04"
+  description: "Standard scrutiny"
+- name: "architecture:tier-3"
+  color: "C5DEF5"
+  description: "Low-risk / experimental"
+- name: "verdict:new"
+  color: "0E8A16"
+  description: "AAK orchestrate verdict: genuinely new, no duplication"
+- name: "verdict:extend"
+  color: "1D76DB"
+  description: "AAK orchestrate verdict: extend an existing canonical target"
+- name: "verdict:duplicate"
+  color: "D93F0B"
+  description: "AAK orchestrate verdict: duplicates a known canonical target"
+- name: "verdict:inconclusive"
+  color: "FBCA04"
+  description: "AAK orchestrate verdict: ambiguous, needs human review"
+- name: "executor:claude"
+  color: "5319E7"
+  description: "Executed by Claude Code"
+- name: "executor:codex"
+  color: "412991"
+  description: "Executed by Codex CLI"
+- name: "plan:approved"
+  color: "2EA44F"
+  description: "Proposed plan reviewed and approved before execution starts"
+- name: "state:blocked"
+  color: "B60205"
+  description: "Duplicate, ambiguity, conflict, expired decision, or scope collision (master plan section 3.1)"
+- name: "override:active"
+  color: "5A32A3"
+  description: "A protected override (aak override create) is currently authorizing scoped writes on this issue"
