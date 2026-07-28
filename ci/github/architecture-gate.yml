@@ -41,6 +41,12 @@ on:
         type: string
         default: "/home/mhx/agent-architecture-kit/bin/aak"
 
+# Least-privilege default: neither job writes to the repo. Reusable workflows
+# otherwise inherit whatever permissions the calling workflow's token has,
+# which can be broader than this actually needs.
+permissions:
+  contents: read
+
 jobs:
   architecture-schema-and-drift:
     runs-on: [self-hosted, linux]
