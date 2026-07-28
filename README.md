@@ -18,8 +18,13 @@ aak task status
 
 ```
 python3 -m venv .venv
-.venv/bin/pip install pyyaml jsonschema
+.venv/bin/pip install -e .          # editable install, exposes the aak console script
+.venv/bin/pip install -e '.[dev]'   # + pytest, for running tests/
 ```
+
+`bin/aak` is a thin wrapper around `.venv/bin/aak` kept at this exact path
+because every consumer repo's `.claude/settings.json`/`~/.codex/config.toml`
+hardcodes it as the hook command.
 
 State (protected task decisions, locks) lives outside this repo, at
 `/srv/agent-architecture/state/` by default (override with `AAK_STATE_ROOT`).
@@ -28,6 +33,6 @@ State (protected task decisions, locks) lives outside this repo, at
 
 This is the Phase 1 slice only: `project`/`task-decision`/`agent-evidence`
 schemas, one guard with three adapters, keyword-based protected-domain
-matching. No MCP, no CI, no multi-language scanners, no override workflow,
-no shadow mode yet - see the master plan's rollout tracks for what comes
-after the pilot proves out.
+matching. No CI integration for the guard itself, no shadow-mode calibration
+yet - see the master plan's rollout tracks for what comes after the pilot
+proves out.

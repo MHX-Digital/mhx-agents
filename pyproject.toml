@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-architecture-kit"
+version = "1.0.0+phase1"
+description = "Deterministic architecture guard + orchestration kit for AI agents (Claude Code/Codex) across NexusLab projects"
+requires-python = ">=3.10"
+dependencies = [
+    "jsonschema",
+    "mcp",
+    "pyyaml",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[project.scripts]
+aak = "aak.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
