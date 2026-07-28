@@ -7,6 +7,7 @@ from . import __version__
 from . import decision as decision_mod
 from . import doctor as doctor_mod
 from . import guard as guard_mod
+from . import hooks as hooks_mod
 from . import orchestrate as orchestrate_mod
 from . import override as override_mod
 from .manifest import ManifestError, load_manifest
@@ -176,6 +177,40 @@ def cmd_orchestrate(args) -> int:
     return 0
 
 
+def _hook_cwd(payload: dict) -> Path:
+    return Path(payload.get("cwd", ".")).resolve() if payload.get("cwd") else Path.cwd()
+
+
+def cmd_hook_session_start(args) -> int:
+    # Advisory only: any error here must never block a session from starting.
+    try:
+        payload = json.load(sys.stdin)
+    except json.JSONDecodeError:
+        payload = {}
+    try:
+        context = hooks_mod.session_start_context(_hook_cwd(payload))
+    except Exception:
+        return 0
+    if context:
+        print(json.dumps({"additionalContext": context}))
+    return 0
+
+
+def cmd_hook_prompt_submit(args) -> int:
+    # Advisory only: any error here must never block the user's prompt.
+    try:
+        payload = json.load(sys.stdin)
+    except json.JSONDecodeError:
+        payload = {}
+    try:
+        context = hooks_mod.prompt_submit_context(_hook_cwd(payload), payload.get("prompt", ""))
+    except Exception:
+        return 0
+    if context:
+        print(json.dumps({"additionalContext": context}))
+    return 0
+
+
 def cmd_mcp_serve(args) -> int:
     # imported lazily: the mcp SDK is a heavy dependency (starlette/uvicorn/etc)
     # that every other subcommand (esp. `guard pretool`, run on every tool call
@@ -251,6 +286,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     mcp_serve.add_argument("--repo-root", required=True, help="path to the repo this MCP instance serves")
     mcp_serve.set_defaults(func=cmd_mcp_serve)
+
+    hook = sub.add_parser("hook", help="advisory (non-blocking) hook commands - never deny, only inform")
+    hook_sub = hook.add_subparsers(dest="hook_command", required=True)
+    hook_sub.add_parser(
+        "session-start",
+        help="SessionStart advisory context: repo tier + active task decision status",
+    ).set_defaults(func=cmd_hook_session_start)
+    hook_sub.add_parser(
+        "prompt-submit",
+        help="UserPromptSubmit advisory context: protected-domain/known-incident keyword match",
+    ).set_defaults(func=cmd_hook_prompt_submit)
 
     return parser
 
