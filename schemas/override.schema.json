@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "override.schema.json",
+  "title": "Agent Architecture Kit - Protected Override",
+  "description": "Shape produced by aak.override.create_override (master plan section 5.7). The repository-local .architecture-override file is a receipt containing only the non-key subset of these fields (issue, scope, reason, expiresAt, authorizationHash); the full record with repoId lives in protected state (overrides_dir).",
+  "type": "object",
+  "required": [
+    "schemaVersion", "repoId", "issue", "scope", "reason",
+    "createdAt", "expiresAt", "authorizationHash"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "repoId": { "type": "string" },
+    "issue": { "type": "integer" },
+    "scope": { "type": "string" },
+    "reason": { "type": "string" },
+    "createdAt": { "type": "string" },
+    "expiresAt": { "type": "string" },
+    "authorizationHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  },
+  "additionalProperties": true
+}

@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "orchestrate-plan.schema.json",
   "title": "aak orchestrate plan",
   "description": "Structured plan produced by Codex in read-only planning mode, consumed by aak orchestrate to create a protected task decision. Reduced verdict set (no Gemini in this kit's scope): NOVO/ESTENDER proceed, DUPLICADO/AMBIGUO always stop (fail-closed).",
   "type": "object",

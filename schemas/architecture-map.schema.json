@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "architecture-map.schema.json",
+  "title": "Agent Architecture Kit - Architecture Map",
+  "description": "Shape produced by aak.scan.core.build_doc (ARCHITECTURE_MAP.json).",
+  "type": "object",
+  "required": [
+    "schemaVersion", "repoId", "generatedAt", "sourceSha",
+    "extractionMethod", "coverage", "components"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "repoId": { "type": "string" },
+    "generatedAt": { "type": "string" },
+    "sourceSha": { "type": "string" },
+    "extractionMethod": { "type": "string" },
+    "coverage": { "type": "string" },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "exports", "layer"],
+        "properties": {
+          "path": { "type": "string" },
+          "exports": { "type": "array", "items": { "type": "string" } },
+          "layer": { "type": "string" },
+          "reExportsFrom": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}
