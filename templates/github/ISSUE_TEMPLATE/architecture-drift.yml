@@ -1,0 +1,40 @@
+name: Architecture drift / duplication
+description: aak guard denied a write, or a review (human or Codex) found architecture duplication/drift
+title: "chore(architecture): "
+labels: ["type:chore", "area:architecture"]
+body:
+  - type: textarea
+    id: finding
+    attributes:
+      label: What was found
+      description: Cite the canonical path/symbol involved (see docs/architecture/DUPLICATION_INCIDENTS.json or the reason the guard gave)
+    validations:
+      required: true
+  - type: dropdown
+    id: verdict
+    attributes:
+      label: Verdict (aak orchestrate vocabulary)
+      options:
+        - "new (genuinely new, no duplication)"
+        - "extend (extend an existing canonical target)"
+        - "duplicate (duplicates something that already exists)"
+        - "inconclusive (needs human review)"
+    validations:
+      required: true
+  - type: dropdown
+    id: executor
+    attributes:
+      label: Who was executing when this appeared
+      options:
+        - "claude"
+        - "codex"
+        - "human (no agent)"
+    validations:
+      required: false
+  - type: textarea
+    id: action
+    attributes:
+      label: Proposed action
+      description: Record a new incident in DUPLICATION_INCIDENTS.json? Create an ADR? Just document it?
+    validations:
+      required: false

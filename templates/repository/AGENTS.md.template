@@ -1,0 +1,43 @@
+# <REPO_NAME> — Agent Instructions
+
+<!--
+  Canonical shared instruction source for this repo (master plan section 8.4).
+  CLAUDE.md and GEMINI.md import this file with `@AGENTS.md` and add only
+  client-specific deltas -- do not duplicate the anti-duplication guard
+  section below into either of them.
+
+  Replace every <PLACEHOLDER> before committing this file, then delete
+  this comment block.
+-->
+
+<ONE-LINE DESCRIPTION OF WHAT THIS PRODUCT DOES>
+
+## Anti-duplication guard (agent-architecture-kit)
+
+**Consult `docs/architecture/ARCHITECTURE_MAP.md` before writing ANY new helper, route, or
+application-layer function.** <ADD ONE SENTENCE ON WHY THIS REPO NEEDS THIS -- e.g. a
+documented history of duplicated logic, or "new repo, no incident history yet">. See
+`docs/architecture/DUPLICATION_INCIDENTS.json` for verified cases as they accumulate.
+
+- `<PROTECTED_DOMAIN_1>`, `<PROTECTED_DOMAIN_2>` are protected domains (see
+  `.agent-architecture/project.yaml`). A `PreToolUse` hook (`.claude/settings.json` calls
+  `aak guard pretool`) denies new writes in these domains unless an active protected task
+  decision explicitly allows the path. This is enforcement, not just documentation -- a
+  denied write must not be worked around via shell redirection, `sed -i`, etc.
+- Before starting Tier 1 work in a protected domain, run `aak task start` to record the
+  task decision (see the `agent-architecture-kit` README).
+- A deny citing a known canonical target means: use that helper/pipeline, don't recreate it.
+
+## Stack
+
+<LANGUAGE/FRAMEWORK, TEST RUNNER, ANY REPO-SPECIFIC BUILD QUIRKS>
+
+## Commands
+
+```
+<DEV SERVER, TYPECHECK, TEST, BUILD, MIGRATE -- WHATEVER THIS STACK USES>
+```
+
+## Key conventions
+
+<REPO-SPECIFIC LINT/STYLE RULES THAT AREN'T ALREADY ENFORCED BY A LINTER, IF ANY>
