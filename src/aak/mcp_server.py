@@ -60,11 +60,37 @@ def _git_value(*args: str) -> str | None:
     return value if result.returncode == 0 and value else None
 
 
+def _git_success(*args: str) -> bool:
+    if _repo_root is None:
+        return False
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(_repo_root), *args],
+            capture_output=True, text=True, timeout=5, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0
+
+
+def _commit_problem(commit: object, observed: str | None, label: str) -> str | None:
+    """Validate an exact commit SHA and constrain it to the served checkout."""
+    if not isinstance(commit, str) or not SHA_RE.fullmatch(commit):
+        return f"{label} commit is absent or invalid; a full 40-character SHA is required"
+    if not _git_success("cat-file", "-e", f"{commit}^{{commit}}"):
+        return f"{label} commit does not exist in the served repository"
+    if observed is None or not SHA_RE.fullmatch(observed):
+        return "observed repository commit could not be verified"
+    if not _git_success("merge-base", "--is-ancestor", commit, observed):
+        return f"{label} commit is outside the served branch history"
+    return None
+
+
 def _index_status(expected_commit: str | None = None) -> dict:
     """Compute a fail-closed freshness contract without exposing repo content."""
     manifest = _get_manifest()
     observed = _git_value("rev-parse", "HEAD")
-    expected = expected_commit or observed
+    expected = expected_commit
     branch = _git_value("branch", "--show-current") or "detached"
     base = {
         "repository": manifest.repo_id,
@@ -85,6 +111,14 @@ def _index_status(expected_commit: str | None = None) -> dict:
     }
     marker = manifest.map_path.with_suffix(manifest.map_path.suffix + ".indexing")
     if marker.exists():
+        try:
+            marker_data = json.loads(marker.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return {**base, "freshness": "failed", "reason": "indexing marker is invalid"}
+        if not isinstance(marker_data, dict) or marker_data.get("status") not in {
+            "requested", "indexing", "validating", "ready", "publishing",
+        }:
+            return {**base, "freshness": "failed", "reason": "indexing marker is invalid"}
         return {**base, "freshness": "indexing", "reason": "an isolated index build is in progress"}
     try:
         data = _read_map()
@@ -111,10 +145,12 @@ def _index_status(expected_commit: str | None = None) -> dict:
         return {**status, "freshness": "incompatible", "reason": "index repository does not match the configured project"}
     if not isinstance(components, list):
         return {**status, "freshness": "incompatible", "reason": "index components field is not an array"}
-    if not isinstance(source_sha, str) or not SHA_RE.fullmatch(source_sha):
-        return {**status, "freshness": "unknown", "reason": "index sourceSha is absent or invalid"}
-    if not isinstance(expected, str) or not SHA_RE.fullmatch(expected):
-        return {**status, "freshness": "unknown", "reason": "expected commit is absent or invalid"}
+    source_problem = _commit_problem(source_sha, observed, "indexed")
+    if source_problem:
+        return {**status, "freshness": "unknown", "reason": source_problem}
+    expected_problem = _commit_problem(expected, observed, "expected")
+    if expected_problem:
+        return {**status, "freshness": "unknown", "reason": expected_problem}
     if source_sha != expected:
         return {**status, "freshness": "stale", "reason": "indexed commit does not match the expected commit"}
     return {**status, "freshness": "fresh", "reason": "indexed commit matches the expected commit"}
@@ -124,10 +160,15 @@ def _freshness_error(expected_commit: str | None = None) -> dict | None:
     status = _index_status(expected_commit)
     if status["freshness"] == "fresh":
         return None
+    failed = status["freshness"] == "failed"
     return {
         "error": {
-            "code": "INDEX_NOT_FRESH",
-            "message": "architectural conclusion blocked because the index is not fresh",
+            "code": "INDEX_BACKEND_UNAVAILABLE" if failed else "INDEX_NOT_FRESH",
+            "message": (
+                "architectural conclusion blocked because the index backend is unavailable"
+                if failed else
+                "architectural conclusion blocked because the index is not fresh"
+            ),
             "retryable": status["freshness"] in {"indexing", "failed", "stale"},
         },
         "index": status,
