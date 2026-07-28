@@ -1,0 +1,34 @@
+name: Feature request
+description: New functionality or improvement
+title: "feat: "
+labels: ["type:feature"]
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why this change, what motivated it
+    validations:
+      required: true
+  - type: textarea
+    id: dod
+    attributes:
+      label: Definition of Done
+      description: Checklist of verifiable acceptance criteria
+      value: |
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Affected architecture tier
+      description: See .agent-architecture/project.yaml
+      options:
+        - "tier-1 (critical path)"
+        - "tier-2 (standard)"
+        - "tier-3 (low risk)"
+        - "not applicable"
+    validations:
+      required: false
