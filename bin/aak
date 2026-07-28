@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Entry point for the Agent Architecture Kit CLI.
+set -euo pipefail
+KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PYTHONPATH="$KIT_ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+exec "$KIT_ROOT/.venv/bin/python" -m aak "$@"

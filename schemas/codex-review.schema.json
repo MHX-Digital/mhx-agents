@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "aak codex-review",
+  "description": "Structured output for the automated Codex PR review job (master plan section 10.4). Shadow mode only in this rollout - never blocking, informational comment on the PR.",
+  "type": "object",
+  "properties": {
+    "decision": {
+      "type": "string",
+      "enum": ["approve", "request_changes"]
+    },
+    "blockingFindings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Issues that would block merge once this check becomes required (shadow mode: informational only for now)."
+    },
+    "findings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Non-blocking observations."
+    },
+    "architectureDrift": {
+      "type": "boolean",
+      "description": "True if the diff touches protected domains without a corresponding architecture-map update."
+    },
+    "missingTests": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "residualRisk": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    }
+  },
+  "required": ["decision", "blockingFindings", "findings", "architectureDrift", "missingTests", "residualRisk"],
+  "additionalProperties": false
+}
