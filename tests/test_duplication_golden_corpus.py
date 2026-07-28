@@ -10,7 +10,6 @@ check_duplication() logic actually catches these two known incidents given
 correct data, independent of whether that repo's file stays in sync.
 """
 import json
-from pathlib import Path
 
 import pytest
 
@@ -44,8 +43,15 @@ INCIDENTS = [
 COMPONENTS = [
     {"path": "src/domain/cases/case-chat.ts", "exports": ["getOrCreateCaseChat", "CaseChatRef"], "layer": "domain"},
     {"path": "src/lib/process-chat.ts", "exports": ["openProcessChat", "buildProcessChatHref"], "layer": "lib"},
-    {"path": "src/services/EventService.ts", "exports": ["publish"], "layer": "service"},
-    {"path": "src/services/NotificationService.ts", "exports": ["processPendingNotifications"], "layer": "service"},
+    # eventService/notificationService, not publish/processPendingNotifications: the
+    # deterministic scanner only captures top-level exports (functions, types, exported
+    # instances), not class methods -- confirmed against the real ARCHITECTURE_MAP.json
+    # while reviewing this PR. canonicalTarget.symbol in the real incidents file still
+    # says "publish" (the method a caller actually invokes), which is correct for a human
+    # reader but not something verify_references can currently confirm -- tracked as a
+    # scanner limitation, not fixed here.
+    {"path": "src/services/EventService.ts", "exports": ["eventService"], "layer": "service"},
+    {"path": "src/services/NotificationService.ts", "exports": ["notificationService"], "layer": "service"},
 ]
 
 
