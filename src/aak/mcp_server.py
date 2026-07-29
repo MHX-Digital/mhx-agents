@@ -143,7 +143,7 @@ def _index_status(expected_commit: str | None = None) -> dict:
         return {**base, "freshness": "indexing", "reason": "an isolated index build is in progress"}
     try:
         data = _read_map()
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, json.JSONDecodeError, TimeoutError) as exc:
         return {**base, "freshness": "failed", "reason": f"index backend unavailable or invalid: {type(exc).__name__}"}
     source_sha = data.get("sourceSha")
     schema = data.get("schemaVersion")
