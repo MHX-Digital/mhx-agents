@@ -214,6 +214,7 @@ class IndexLifecycle:
             current = "requested"
             if cancel and cancel():
                 self._state(run_dir, current, "cancelled")
+                current = "cancelled"
                 raise IndexLifecycleError("indexing was cancelled")
             self._state(run_dir, current, "indexing")
             current = "indexing"
@@ -222,6 +223,7 @@ class IndexLifecycle:
             builder(artifact, resolved)
             if cancel and cancel():
                 self._state(run_dir, current, "cancelled")
+                current = "cancelled"
                 raise IndexLifecycleError("indexing was cancelled")
             self._state(run_dir, current, "validating")
             current = "validating"
