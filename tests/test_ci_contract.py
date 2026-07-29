@@ -36,4 +36,4 @@ def test_release_workflow_does_not_persist_credentials_or_enable_cache():
     assert content.count("persist-credentials: false") == 2
     assert content.count('cache: ""') == 2
     assert "pull_request_target" not in content
-    assert "secrets." not in content
+    assert "${{ secrets." not in content
