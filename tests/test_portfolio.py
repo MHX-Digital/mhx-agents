@@ -1,7 +1,7 @@
 """Tests for aak.portfolio (deterministic tier-scored portfolio scan)."""
 import subprocess
 
-from aak.portfolio import scan_portfolio, score_project
+from aak.portfolio import _git_last_commit_at, scan_portfolio, score_project
 
 
 def _init_git_repo(path, commit_date=None):
@@ -95,3 +95,17 @@ def test_fresh_commit_counts_as_recent(tmp_path):
     _init_git_repo(proj)
     result = score_project(proj)
     assert result.signals["recentCommit"] is True
+
+
+def test_git_timestamp_z_suffix_is_supported_on_python_310(tmp_path, monkeypatch):
+    repo = tmp_path / "z-repo"
+    (repo / ".git").mkdir(parents=True)
+
+    class Result:
+        returncode = 0
+        stdout = "2026-07-29T17:50:00Z\n"
+
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: Result())
+    parsed = _git_last_commit_at(repo)
+    assert parsed is not None
+    assert parsed.isoformat() == "2026-07-29T17:50:00+00:00"
