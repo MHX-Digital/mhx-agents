@@ -71,7 +71,7 @@ def _status(sha, token=None, tenant="avancard-fenix"):
 def test_missing_invalid_expired_and_revoked_credentials_fail_closed(secured_repo, monkeypatch):
     _, sha, _ = secured_repo
     assert _status(sha)["error"]["code"] == "AUTHENTICATION_REQUIRED"
-    assert _status(sha, "bad")["error"]["code"] == "AUTHENTICATION_REQUIRED"
+    assert _status(sha, "bad")["error"]["code"] == "AUTHENTICATION_INVALID"
     assert _status(sha, _token(exp=NOW))["error"]["code"] == "AUTHENTICATION_EXPIRED"
     boundary = SecurityBoundary({"current": KEY}, revoked={"revoked"}, clock=lambda: NOW)
     monkeypatch.setattr(mcp_server, "_security", boundary)
