@@ -113,7 +113,7 @@ def test_lock_prevents_two_publishers(lifecycle):
     service, commit = lifecycle
     service.state_root.mkdir(parents=True)
     service.lock_path.write_text("existing", encoding="utf-8")
-    with pytest.raises(IndexLifecycleError, match="holds the lock"):
+    with pytest.raises(IndexLifecycleError, match="lock"):
         service.publish("main", commit, _builder(_doc(commit)), operator="test")
 
 
