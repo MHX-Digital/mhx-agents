@@ -124,8 +124,8 @@ def test_rate_limit_is_per_identity_and_metadata_only(secured_repo):
 
 def test_traversal_absolute_null_unicode_and_symlink_escape_are_blocked(secured_repo):
     root, sha, _ = secured_repo
-    token = _token(jti="paths")
-    for slug in ("../safe", "/etc/passwd", "safe\x00x", "..%2fsafe", "$HOME", "safe/../../x", "ｓａｆｅ"):
+    for index, slug in enumerate(("../safe", "/etc/passwd", "safe\x00x", "..%2fsafe", "$HOME", "safe/../../x", "ｓａｆｅ")):
+        token = _token(jti=f"paths-{index}")
         result = mcp_server.get_adr(slug, sha, tenantId="avancard-fenix", authToken=token)
         assert result["error"]["code"] == "INPUT_INVALID"
     outside = root / "outside.md"
