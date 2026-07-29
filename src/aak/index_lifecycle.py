@@ -11,6 +11,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -133,7 +134,8 @@ class IndexLifecycle:
             fd = os.open(self.lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         except FileExistsError as exc:
             raise IndexLifecycleError("another index publisher holds the lock") from exc
-        os.write(fd, run_id.encode("ascii"))
+        payload = _canonical_json({"runId": run_id, "pid": os.getpid(), "createdAt": _now()})
+        os.write(fd, payload)
         os.fsync(fd)
         return fd
 
@@ -197,8 +199,29 @@ class IndexLifecycle:
         })
         return snapshot_id, active_hash
 
+    def _isolated_workspace(self, run_id: str, resolved: str) -> tuple[Path, Path]:
+        base = Path(tempfile.mkdtemp(prefix=f"aak-index-{run_id}-"))
+        workspace = base / "worktree"
+        result = subprocess.run(
+            ["git", "-C", str(self.repo_root), "worktree", "add", "--detach", str(workspace), resolved],
+            capture_output=True, text=True, timeout=60, check=False,
+        )
+        if result.returncode != 0:
+            shutil.rmtree(base)
+            raise IndexLifecycleError("isolated index workspace could not be created")
+        return base, workspace
+
+    def _remove_workspace(self, base: Path | None, workspace: Path | None) -> None:
+        if workspace is not None:
+            subprocess.run(
+                ["git", "-C", str(self.repo_root), "worktree", "remove", "--force", str(workspace)],
+                capture_output=True, timeout=60, check=False,
+            )
+        if base is not None and base.exists():
+            shutil.rmtree(base)
+
     def publish(
-        self, branch: str, requested_commit: str, builder: Callable[[Path, str], None],
+        self, branch: str, requested_commit: str, builder: Callable[[Path, str, Path], None],
         *, operator: str, origin: str = "manual", cancel: Callable[[], bool] | None = None,
         indexer_version: str = "unknown",
     ) -> Publication:
@@ -208,6 +231,8 @@ class IndexLifecycle:
         current = None
         fd = self._acquire(run_id)
         previous_index = None
+        workspace_base = None
+        workspace = None
         try:
             resolved = self._resolve_target(branch, requested_commit)
             self._state(run_dir, current, "requested")
@@ -220,7 +245,8 @@ class IndexLifecycle:
             current = "indexing"
             artifact = run_dir / "candidate" / "index.json"
             artifact.parent.mkdir(parents=True)
-            builder(artifact, resolved)
+            workspace_base, workspace = self._isolated_workspace(run_id, resolved)
+            builder(artifact, resolved, workspace)
             if cancel and cancel():
                 self._state(run_dir, current, "cancelled")
                 current = "cancelled"
@@ -283,6 +309,7 @@ class IndexLifecycle:
                 raise
             raise IndexLifecycleError("index publication failed") from exc
         finally:
+            self._remove_workspace(workspace_base, workspace)
             self._release(fd)
 
     def rollback(self, snapshot_id: str, *, operator: str, origin: str = "manual") -> Publication:
@@ -318,3 +345,17 @@ class IndexLifecycle:
             return Publication(run_id, "rolled_back", run_dir / "manifest.json", self.active_path, snapshot_id)
         finally:
             self._release(fd)
+
+
+def scanner_builder(manifest: ProjectManifest, adapter) -> Callable[[Path, str, Path], None]:
+    """Adapt the canonical scanner to the isolated lifecycle workspace."""
+    from .scan.core import build_doc, scan_repo
+
+    def build(artifact: Path, resolved: str, workspace: Path) -> None:
+        components, scanned_roots = scan_repo(workspace, manifest.source_roots, adapter)
+        doc = build_doc(workspace, manifest.repo_id, components, scanned_roots, adapter)
+        if doc.get("sourceSha") != resolved:
+            raise IndexLifecycleError("isolated scanner checkout does not match the resolved commit")
+        artifact.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+
+    return build
