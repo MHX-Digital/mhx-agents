@@ -96,4 +96,14 @@ jobs:
           python -m pip install --disable-pip-version-check --requirement requirements-ci.txt
           python -m pip install --disable-pip-version-check pip-audit==2.9.0
       - name: Audit dependencies without mutation
-        run: python -m pip_audit --strict --requirement requirements-ci.txt
+        run: |
+          python -m pip_audit --strict --requirement requirements-ci.txt
+          python -m pip_audit --requirement requirements-ci.txt --format cyclonedx-json --output sbom.cdx.json
+      - name: Upload dependency SBOM
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: sbom-cyclonedx
+          path: sbom.cdx.json
+          if-no-files-found: error
+          retention-days: 7
