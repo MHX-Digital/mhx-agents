@@ -273,7 +273,7 @@ def search_capability(
         return [_protected({"error": {"code": "INPUT_INVALID", "message": "query or limit is invalid"}}, correlation)]
     freshness_err = _freshness_error(expectedCommit)
     if freshness_err:
-        return [freshness_err]
+        return [_protected(freshness_err, correlation)]
     return _protected(_search_components(query, limit), correlation)
 
 
@@ -301,7 +301,7 @@ def get_component(
         return _protected({"error": {"code": "INPUT_INVALID", "message": "component identifier is invalid"}}, correlation)
     freshness_err = _freshness_error(expectedCommit)
     if freshness_err:
-        return freshness_err
+        return _protected(freshness_err, correlation)
     return _protected(_get_component(componentId), correlation)
 
 
