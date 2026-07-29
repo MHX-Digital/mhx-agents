@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+from functools import lru_cache
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -94,16 +95,38 @@ def _git_success(*args: str) -> bool:
     return result.returncode == 0
 
 
+@lru_cache(maxsize=512)
+def _commit_scope_result(repo_root: str, commit: str, observed: str) -> str | None:
+    """Cache immutable object/ancestry proofs, never HEAD or freshness state."""
+    try:
+        exists = subprocess.run(
+            ["git", "-C", repo_root, "cat-file", "-e", f"{commit}^{{commit}}"],
+            capture_output=True, text=True, timeout=5, check=False,
+        )
+        if exists.returncode != 0:
+            return "missing"
+        ancestor = subprocess.run(
+            ["git", "-C", repo_root, "merge-base", "--is-ancestor", commit, observed],
+            capture_output=True, text=True, timeout=5, check=False,
+        )
+        return None if ancestor.returncode == 0 else "outside"
+    except (OSError, subprocess.TimeoutExpired):
+        return "unavailable"
+
+
 def _commit_problem(commit: object, observed: str | None, label: str) -> str | None:
     """Validate an exact commit SHA and constrain it to the served checkout."""
     if not isinstance(commit, str) or not SHA_RE.fullmatch(commit):
         return f"{label} commit is absent or invalid; a full 40-character SHA is required"
-    if not _git_success("cat-file", "-e", f"{commit}^{{commit}}"):
-        return f"{label} commit does not exist in the served repository"
-    if observed is None or not SHA_RE.fullmatch(observed):
+    if observed is None or not SHA_RE.fullmatch(observed) or _repo_root is None:
         return "observed repository commit could not be verified"
-    if not _git_success("merge-base", "--is-ancestor", commit, observed):
+    result = _commit_scope_result(str(_repo_root), commit, observed)
+    if result == "missing":
+        return f"{label} commit does not exist in the served repository"
+    if result == "outside":
         return f"{label} commit is outside the served branch history"
+    if result == "unavailable":
+        return "repository commit scope could not be verified"
     return None
 
 
