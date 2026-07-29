@@ -81,8 +81,10 @@ def test_invalid_candidate_never_replaces_active_index(lifecycle):
 def test_wrong_commit_or_schema_never_publishes(lifecycle):
     service, commit = lifecycle
     wrong = _doc("0" * 40)
+    def wrong_builder(path: Path, resolved: str):
+        path.write_text(json.dumps(wrong), encoding="utf-8")
     with pytest.raises(IndexLifecycleError, match="candidate commit"):
-        service.publish("main", commit, _builder(wrong), operator="test")
+        service.publish("main", commit, wrong_builder, operator="test")
     incompatible = _doc(commit)
     incompatible["schemaVersion"] = "2.0"
     with pytest.raises(IndexLifecycleError, match="schema"):
