@@ -43,8 +43,9 @@ def _doc(commit: str, path: str = "src/a.ts") -> dict:
 
 
 def _builder(doc: dict):
-    def build(path: Path, resolved: str):
+    def build(path: Path, resolved: str, workspace: Path):
         assert resolved == doc["sourceSha"]
+        assert (workspace / "tracked.txt").is_file()
         path.write_text(json.dumps(doc), encoding="utf-8")
     return build
 
@@ -69,7 +70,7 @@ def test_invalid_candidate_never_replaces_active_index(lifecycle):
     original = json.dumps(_doc(commit, "src/original.ts"))
     service.active_path.write_text(original)
 
-    def broken(path: Path, resolved: str):
+    def broken(path: Path, resolved: str, workspace: Path):
         path.write_text("{broken", encoding="utf-8")
 
     with pytest.raises(IndexLifecycleError, match="invalid JSON"):
@@ -81,7 +82,7 @@ def test_invalid_candidate_never_replaces_active_index(lifecycle):
 def test_wrong_commit_or_schema_never_publishes(lifecycle):
     service, commit = lifecycle
     wrong = _doc("0" * 40)
-    def wrong_builder(path: Path, resolved: str):
+    def wrong_builder(path: Path, resolved: str, workspace: Path):
         path.write_text(json.dumps(wrong), encoding="utf-8")
     with pytest.raises(IndexLifecycleError, match="candidate commit"):
         service.publish("main", commit, wrong_builder, operator="test")
