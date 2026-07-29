@@ -82,3 +82,56 @@ class TestTypeScriptAdapter:
     def test_should_not_skip_route_ts_even_under_app(self, tmp_path):
         p = _write(tmp_path, "app/api/health/route.ts", "export async function GET() {}\n")
         assert self.adapter.should_skip("app/api/health/route.ts", p) is False
+
+    def test_class_method_recorded_even_when_only_instance_is_exported(self, tmp_path):
+        """Reproduces the real EventService/publish case from issue #35: the
+        class itself is never exported, only an instance of it is."""
+        content = (
+            "class EventService {\n"
+            "  async publish(input) {\n"
+            "    return null;\n"
+            "  }\n"
+            "\n"
+            "  private isPoisonMessage(x) {\n"
+            "    return false;\n"
+            "  }\n"
+            "\n"
+            "  constructor() {}\n"
+            "}\n"
+            "\n"
+            "const eventService = new EventService();\n"
+            "export default eventService;\n"
+        )
+        p = _write(tmp_path, "src/services/EventService.ts", content)
+        result = self.adapter.scan_file(p, "src/services/EventService.ts")
+        assert "publish" in result["exports"]
+        assert "eventService" in result["exports"]
+        assert "isPoisonMessage" not in result["exports"]
+        assert "constructor" not in result["exports"]
+
+    def test_class_methods_do_not_leak_past_the_class_body(self, tmp_path):
+        content = (
+            "class Widget {\n"
+            "  render() {}\n"
+            "}\n"
+            "\n"
+            "export function unrelated() {}\n"
+        )
+        p = _write(tmp_path, "src/lib/widget.ts", content)
+        result = self.adapter.scan_file(p, "src/lib/widget.ts")
+        assert result["exports"] == ["render", "unrelated"]
+
+    def test_class_method_extraction_coexists_with_top_level_exports(self, tmp_path):
+        content = (
+            "export const TOP_LEVEL = 1;\n"
+            "\n"
+            "class Service {\n"
+            "  async run() {}\n"
+            "  static staticHelper() {}\n"
+            "}\n"
+            "\n"
+            "export const service = new Service();\n"
+        )
+        p = _write(tmp_path, "src/services/Service.ts", content)
+        result = self.adapter.scan_file(p, "src/services/Service.ts")
+        assert result["exports"] == ["TOP_LEVEL", "run", "service", "staticHelper"]

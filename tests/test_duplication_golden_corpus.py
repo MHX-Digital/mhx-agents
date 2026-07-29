@@ -43,15 +43,19 @@ INCIDENTS = [
 COMPONENTS = [
     {"path": "src/domain/cases/case-chat.ts", "exports": ["getOrCreateCaseChat", "CaseChatRef"], "layer": "domain"},
     {"path": "src/lib/process-chat.ts", "exports": ["openProcessChat", "buildProcessChatHref"], "layer": "lib"},
-    # eventService/notificationService, not publish/processPendingNotifications: the
-    # deterministic scanner only captures top-level exports (functions, types, exported
-    # instances), not class methods -- confirmed against the real ARCHITECTURE_MAP.json
-    # while reviewing this PR. canonicalTarget.symbol in the real incidents file still
-    # says "publish" (the method a caller actually invokes), which is correct for a human
-    # reader but not something verify_references can currently confirm -- tracked as a
-    # scanner limitation, not fixed here.
-    {"path": "src/services/EventService.ts", "exports": ["eventService"], "layer": "service"},
-    {"path": "src/services/NotificationService.ts", "exports": ["notificationService"], "layer": "service"},
+    # publish/processPendingNotifications are class methods, not top-level
+    # exports (only the instance -- eventService/notificationService -- is
+    # exported). Fixed in issue #35: the TypeScript adapter now also records
+    # public class-method names as bare export entries even when only an
+    # instance of the class is exported, so canonicalTarget.symbol: "publish"
+    # (the method a caller actually invokes) is verifiable like any other
+    # symbol -- confirmed against the real ARCHITECTURE_MAP.json.
+    {"path": "src/services/EventService.ts", "exports": ["eventService", "publish"], "layer": "service"},
+    {
+        "path": "src/services/NotificationService.ts",
+        "exports": ["notificationService", "processPendingNotifications"],
+        "layer": "service",
+    },
 ]
 
 
@@ -118,3 +122,17 @@ def test_case_chat_candidate_components_surface_both_canonical_symbols(golden_re
     candidate_paths = {c["path"] for c in result["candidateComponents"]}
     assert "src/domain/cases/case-chat.ts" in candidate_paths
     assert "src/lib/process-chat.ts" in candidate_paths
+
+
+def test_notification_incident_canonical_symbol_now_verifiable(golden_repo):
+    """Regression guard for issue #35: verify_references used to report
+    "publish" as a missingSymbol even though it's the correct, human-verified
+    canonicalTarget.symbol -- a scanner coverage gap, not a bad citation."""
+    monkeypatch_manifest = mcp_server_mod._get_manifest()
+    result = mcp_server_mod.verify_references(
+        repoId=monkeypatch_manifest.repo_id,
+        paths=["src/services/EventService.ts"],
+        symbols=["publish", "processPendingNotifications"],
+    )
+    assert result["missingSymbols"] == []
+    assert set(result["verifiedSymbols"]) == {"publish", "processPendingNotifications"}
