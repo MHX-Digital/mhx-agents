@@ -1,7 +1,7 @@
 # MCP — baseline, SLOs e runbook operacional
 
-Data: 2026-07-29  
-Issue: [LexNotify-Web #795](https://github.com/LexNotify/LexNotify-Web/issues/795)  
+Data: 2026-07-29
+Issue: [LexNotify-Web #795](https://github.com/LexNotify/LexNotify-Web/issues/795)
 Ambiente: local sanitizado, Python 3.12.3, um host, cache de filesystem aquecido, sem transporte de rede.
 
 ## Método reproduzível
