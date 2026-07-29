@@ -126,8 +126,10 @@ class SecurityBoundary:
             os.close(fd)
 
     def _decode(self, token: str | None) -> Claims:
-        if not isinstance(token, str) or not TOKEN_RE.fullmatch(token):
+        if token is None or token == "":
             raise SecurityError("AUTHENTICATION_REQUIRED", "valid authentication is required")
+        if not isinstance(token, str) or not TOKEN_RE.fullmatch(token):
+            raise SecurityError("AUTHENTICATION_INVALID", "authentication is invalid")
         kid, encoded, signature = token.split(".")
         key = self._keys.get(kid)
         if key is None:
