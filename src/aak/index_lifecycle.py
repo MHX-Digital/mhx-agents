@@ -128,16 +128,46 @@ class IndexLifecycle:
             raise IndexLifecycleError("requested commit is outside the requested branch history")
         return resolved
 
+    @staticmethod
+    def _pid_alive(pid: object) -> bool:
+        if not isinstance(pid, int) or pid <= 0:
+            return True
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        except (PermissionError, OSError):
+            return True
+        return True
+
     def _acquire(self, run_id: str) -> int:
         self.state_root.mkdir(parents=True, exist_ok=True)
-        try:
-            fd = os.open(self.lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-        except FileExistsError as exc:
-            raise IndexLifecycleError("another index publisher holds the lock") from exc
-        payload = _canonical_json({"runId": run_id, "pid": os.getpid(), "createdAt": _now()})
-        os.write(fd, payload)
-        os.fsync(fd)
-        return fd
+        for attempt in range(2):
+            try:
+                fd = os.open(self.lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+            except FileExistsError as exc:
+                try:
+                    existing = json.loads(self.lock_path.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError):
+                    raise IndexLifecycleError("another index publisher holds an unverifiable lock") from exc
+                if self._pid_alive(existing.get("pid")):
+                    raise IndexLifecycleError("another index publisher holds the lock") from exc
+                if attempt:
+                    raise IndexLifecycleError("orphaned publisher lock could not be recovered") from exc
+                orphan = self.state_root / f"publish.lock.orphaned.{existing.get('runId', 'unknown')}"
+                try:
+                    os.replace(self.lock_path, orphan)
+                except OSError as move_error:
+                    raise IndexLifecycleError("orphaned publisher lock could not be recovered") from move_error
+                continue
+            payload = _canonical_json({
+                "runId": run_id, "pid": os.getpid(), "createdAt": _now(),
+                "repositoryId": self.manifest.repo_id,
+            })
+            os.write(fd, payload)
+            os.fsync(fd)
+            return fd
+        raise IndexLifecycleError("publisher lock acquisition failed")
 
     def _release(self, fd: int) -> None:
         os.close(fd)
