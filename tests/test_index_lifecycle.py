@@ -117,6 +117,17 @@ def test_lock_prevents_two_publishers(lifecycle):
         service.publish("main", commit, _builder(_doc(commit)), operator="test")
 
 
+def test_orphaned_lock_is_preserved_and_recovered(lifecycle):
+    service, commit = lifecycle
+    service.state_root.mkdir(parents=True)
+    service.lock_path.write_text(json.dumps({
+        "runId": "interrupted", "pid": 999999999, "repositoryId": "lexnotify/web",
+    }), encoding="utf-8")
+    result = service.publish("main", commit, _builder(_doc(commit)), operator="recovery-test")
+    assert result.status == "published"
+    assert (service.state_root / "publish.lock.orphaned.interrupted").is_file()
+
+
 def test_compare_and_swap_detects_active_change(lifecycle, monkeypatch):
     service, commit = lifecycle
     service.active_path.parent.mkdir(parents=True)
