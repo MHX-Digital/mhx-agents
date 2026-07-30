@@ -66,6 +66,39 @@ ROUTE_METHOD_RE = re.compile(
     re.MULTILINE,
 )
 
+# Class-method extraction (issue #35): the scanner otherwise only ever sees
+# top-level `export ...` statements, so a method like EventService.publish
+# never shows up when only the class *instance* is exported (`export default
+# eventService`), not the class itself - a real, confirmed false-negative in
+# verify_references against LexNotify-Web's own duplication incidents. This
+# is line-based, not a brace-depth parser: a class body is assumed to start
+# at a `class X {` line and end at the first following non-indented,
+# non-blank line (matches this codebase's consistent 2-space, same-line-
+# brace style - same level of approximation as the rest of this adapter).
+CLASS_START_RE = re.compile(r"^(?:export\s+)?(?:default\s+)?(?:abstract\s+)?class\s+(\w+)\b")
+# Exactly 2-space indent = a direct class member. private/protected members
+# are excluded implicitly: those keywords aren't in the accepted modifier
+# list below, so `\s*\(` never lines up right after them. `constructor` is
+# excluded explicitly by name below (it's never a citable capability).
+CLASS_METHOD_RE = re.compile(r"^  (?:public\s+)?(?:static\s+)?(?:async\s+)?(?:get\s+|set\s+)?(\w+)\s*\(")
+
+
+def _extract_class_method_names(text: str) -> set[str]:
+    names: set[str] = set()
+    in_class = False
+    for line in text.splitlines():
+        if not in_class:
+            if CLASS_START_RE.match(line):
+                in_class = True
+            continue
+        if line and not line[0].isspace():
+            in_class = False
+            continue
+        m = CLASS_METHOD_RE.match(line)
+        if m and m.group(1) != "constructor":
+            names.add(m.group(1))
+    return names
+
 
 def _parse_named_list(raw: str) -> list[str]:
     """`{ A, B as C, type D }` -> ['A', 'C', 'D'] (the locally-visible/exported name)."""
@@ -127,6 +160,7 @@ class TypeScriptAdapter(LanguageAdapter):
             exports.add("default")
         for raw_list in EXPORT_NAMED_LOCAL_RE.findall(text):
             exports.update(_parse_named_list(raw_list))
+        exports.update(_extract_class_method_names(text))
 
         re_exports = sorted(set(REEXPORT_STAR_RE.findall(text)) | {p for _, p in REEXPORT_NAMED_RE.findall(text)})
 
@@ -145,8 +179,11 @@ class TypeScriptAdapter(LanguageAdapter):
             "tests and generated paths. Extracts module-level exports (function/const/class/"
             "interface/type/enum, including local 'export { X }' lists) via structured "
             "regex, not a full TS AST parse. app/api/**/route.ts is special-cased to list "
-            "only exported HTTP method handlers. Methods of an exported class/object are "
-            "not resolved individually - the module is listed for its own top-level exports "
-            "only. 'export *'/'export {X} from' are recorded as reExportsFrom (not resolved "
-            "recursively to the original file)."
+            "only exported HTTP method handlers. Public methods of any class body found in "
+            "the file (2-space-indented direct members, excluding constructor/private/"
+            "protected) are also recorded as bare export entries, even when only an "
+            "instance of the class is exported - not the class itself - so method-level "
+            "citations like EventService.publish can be verified. 'export *'/'export {X} "
+            "from' are recorded as reExportsFrom (not resolved recursively to the original "
+            "file)."
         )
