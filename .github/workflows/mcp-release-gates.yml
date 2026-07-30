@@ -45,7 +45,7 @@ jobs:
       - name: Reject whitespace errors
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: git log --check --format=oneline "$BASE_SHA..HEAD"
+        run: git diff --check "$BASE_SHA...HEAD"
       - name: Validate schemas and manifests
         run: |
           python - <<'PY'
