@@ -40,6 +40,14 @@ INCIDENTS = [
     },
 ]
 
+class _TrustedGoldenBoundary:
+    def authorize(self, **kwargs):
+        return None, "golden-correlation", None
+
+    def protect_response(self, value, correlation_id):
+        return value
+
+
 COMPONENTS = [
     {"path": "src/domain/cases/case-chat.ts", "exports": ["getOrCreateCaseChat", "CaseChatRef"], "layer": "domain"},
     {"path": "src/lib/process-chat.ts", "exports": ["openProcessChat", "buildProcessChatHref"], "layer": "lib"},
@@ -78,6 +86,7 @@ def golden_repo(tmp_path, monkeypatch):
 
     monkeypatch.setattr(mcp_server_mod, "_manifest", None)
     monkeypatch.setattr(mcp_server_mod, "_repo_root", tmp_path)
+    monkeypatch.setattr(mcp_server_mod, "_security", _TrustedGoldenBoundary())
     expected_commit = "a" * 40
 
     def require_expected_commit(value):

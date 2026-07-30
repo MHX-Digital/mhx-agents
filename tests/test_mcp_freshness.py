@@ -8,6 +8,14 @@ from aak import mcp_server
 from aak.manifest import ProjectManifest
 
 
+class _TrustedTestBoundary:
+    def authorize(self, **kwargs):
+        return None, "test-correlation", None
+
+    def protect_response(self, value, correlation_id):
+        return value
+
+
 def _manifest(repo: Path) -> ProjectManifest:
     return ProjectManifest(
         schema_version="1.0", repo_id="lexnotify/web", tier=1,
@@ -30,6 +38,7 @@ def repo(tmp_path, monkeypatch):
     map_path.parent.mkdir(parents=True)
     monkeypatch.setattr(mcp_server, "_repo_root", tmp_path)
     monkeypatch.setattr(mcp_server, "_manifest", _manifest(tmp_path))
+    monkeypatch.setattr(mcp_server, "_security", _TrustedTestBoundary())
     return tmp_path, map_path
 
 
