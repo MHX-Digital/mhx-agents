@@ -78,14 +78,23 @@ def golden_repo(tmp_path, monkeypatch):
 
     monkeypatch.setattr(mcp_server_mod, "_manifest", None)
     monkeypatch.setattr(mcp_server_mod, "_repo_root", tmp_path)
-    yield tmp_path
+    expected_commit = "a" * 40
+
+    def require_expected_commit(value):
+        assert value == expected_commit
+        return None
+
+    monkeypatch.setattr(mcp_server_mod, "_freshness_error", require_expected_commit)
+    yield tmp_path, expected_commit
     monkeypatch.setattr(mcp_server_mod, "_manifest", None)
     monkeypatch.setattr(mcp_server_mod, "_repo_root", None)
 
 
 def test_replays_case_chat_incident(golden_repo):
+    _, expected_commit = golden_repo
     result = mcp_server_mod.check_duplication(
-        "preciso implementar chat verticalizado por processo pra nova tela de audiencias"
+        "preciso implementar chat verticalizado por processo pra nova tela de audiencias",
+        expectedCommit=expected_commit,
     )
     assert result["matchedIncident"] is not None
     assert result["matchedIncident"]["canonicalTarget"] == {
@@ -94,8 +103,10 @@ def test_replays_case_chat_incident(golden_repo):
 
 
 def test_replays_notification_pipeline_incident(golden_repo):
+    _, expected_commit = golden_repo
     result = mcp_server_mod.check_duplication(
-        "vou mexer no pipeline de notificacoes pra adicionar um canal novo de SMS"
+        "vou mexer no pipeline de notificacoes pra adicionar um canal novo de SMS",
+        expectedCommit=expected_commit,
     )
     assert result["matchedIncident"] is not None
     assert result["matchedIncident"]["canonicalTarget"] == {
@@ -104,8 +115,10 @@ def test_replays_notification_pipeline_incident(golden_repo):
 
 
 def test_unrelated_request_matches_no_incident(golden_repo):
+    _, expected_commit = golden_repo
     result = mcp_server_mod.check_duplication(
-        "quero adicionar um botao de exportar CSV na tela de relatorios"
+        "quero adicionar um botao de exportar CSV na tela de relatorios",
+        expectedCommit=expected_commit,
     )
     assert result["matchedIncident"] is None
 
@@ -114,7 +127,11 @@ def test_case_chat_candidate_components_surface_both_canonical_symbols(golden_re
     """The fix for the case-chat incident introduced two canonical symbols
     (getOrCreateCaseChat for provisioning, openProcessChat for navigation) --
     a search for "chat" should surface both, not just one."""
-    result = mcp_server_mod.check_duplication("preciso implementar chat verticalizado por processo")
+    _, expected_commit = golden_repo
+    result = mcp_server_mod.check_duplication(
+        "preciso implementar chat verticalizado por processo",
+        expectedCommit=expected_commit,
+    )
     candidate_paths = {c["path"] for c in result["candidateComponents"]}
     assert "src/domain/cases/case-chat.ts" in candidate_paths
     assert "src/lib/process-chat.ts" in candidate_paths
