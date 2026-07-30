@@ -81,7 +81,7 @@ def _git_last_commit_at(path: Path) -> datetime | None:
     if result.returncode != 0 or not result.stdout.strip():
         return None
     try:
-        return datetime.fromisoformat(result.stdout.strip())
+        return datetime.fromisoformat(result.stdout.strip().replace("Z", "+00:00"))
     except ValueError:
         return None
 
