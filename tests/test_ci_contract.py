@@ -25,10 +25,11 @@ def test_release_workflow_runs_every_critical_suite_and_security_gate():
         "tests/test_mcp_integrated_resilience.py",
         "python scripts/ci/check_secrets.py",
         "python -m pip_audit --strict",
-        "git log --check",
+        "git diff --check",
         "python -m pytest -q --junitxml",
     }
     assert not (required - set(fragment for fragment in required if fragment in content))
+    assert "git log --check" not in content
 
 
 def test_release_workflow_does_not_persist_credentials_or_enable_cache():
