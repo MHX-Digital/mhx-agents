@@ -370,7 +370,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan_run.add_argument("--repo-root", required=True, help="path to the repo to scan")
     # kept as an explicit flag (not manifest-driven auto-detect) until a second
     # consumer needs auto-detect badly enough to justify a project.yaml schema change
-    scan_run.add_argument("--language", required=True, choices=["typescript", "python"])
+    scan_run.add_argument("--language", required=True, choices=["typescript", "python", "rust", "solidity", "dart"])
     scan_run.add_argument("--check", action="store_true")
     scan_run.set_defaults(func=cmd_scan_run)
 
@@ -413,7 +413,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="unified gate: manifest/map schema + drift + staged scope-check (what CI runs)",
     )
     verify.add_argument("--repo-root", default=None, help="path to the repo to verify (default: cwd)")
-    verify.add_argument("--language", default=None, choices=["typescript", "python"],
+    verify.add_argument("--language", default=None, choices=["typescript", "python", "rust", "solidity", "dart"],
                          help="run the architecture-drift check for this language (omit to skip it)")
     verify.add_argument("--staged", action="store_true", help="also run the scope-verification check against staged files")
     verify.set_defaults(func=cmd_verify)

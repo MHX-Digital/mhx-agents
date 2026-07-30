@@ -18,7 +18,7 @@ from pathlib import Path
 LANGUAGE_MARKERS = [
     ("Cargo.toml", "Rust"),
     ("pubspec.yaml", "Dart/Flutter"),
-    ("Anchor.toml", "Solidity/Anchor"),
+    ("Anchor.toml", "Rust/Anchor"),
     ("requirements.txt", "Python"),
     ("pyproject.toml", "Python"),
     ("package.json", "TypeScript/JavaScript"),
