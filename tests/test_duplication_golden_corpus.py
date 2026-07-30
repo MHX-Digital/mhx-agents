@@ -154,11 +154,13 @@ def test_notification_incident_canonical_symbol_now_verifiable(golden_repo):
     """Regression guard for issue #35: verify_references used to report
     "publish" as a missingSymbol even though it's the correct, human-verified
     canonicalTarget.symbol -- a scanner coverage gap, not a bad citation."""
+    _, expected_commit = golden_repo
     monkeypatch_manifest = mcp_server_mod._get_manifest()
     result = mcp_server_mod.verify_references(
         repoId=monkeypatch_manifest.repo_id,
         paths=["src/services/EventService.ts"],
         symbols=["publish", "processPendingNotifications"],
+        expectedCommit=expected_commit,
     )
     assert result["missingSymbols"] == []
     assert set(result["verifiedSymbols"]) == {"publish", "processPendingNotifications"}
