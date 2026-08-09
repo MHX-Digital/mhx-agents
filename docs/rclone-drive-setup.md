@@ -1,4 +1,4 @@
-# Google Drive mount on mhx-lab (rclone) — setup
+# Google Drive mount on your VPS (rclone) — setup
 
 Prepared by the agent; **the OAuth step below needs you interactively** —
 it can't be scripted or completed by an agent.
@@ -6,7 +6,7 @@ it can't be scripted or completed by an agent.
 ## 1. One-time OAuth (you do this, on the VPS)
 
 ```
-ssh mhx-lab
+ssh your-vps
 rclone config
 ```
 
@@ -32,7 +32,7 @@ Verify: `rclone lsd gdrive:` should list your Drive's top-level folders.
 ## 2. Install the mount as a systemd user service
 
 ```
-ssh mhx-lab
+ssh your-vps
 mkdir -p ~/.config/systemd/user
 cp ~/agent-architecture-kit/rclone-drive.service ~/.config/systemd/user/
 systemctl --user daemon-reload
@@ -43,7 +43,7 @@ systemctl --user enable --now rclone-drive.service
 services stop when the last session for that user ends, unless lingering is on):
 
 ```
-sudo loginctl enable-linger mhx
+sudo loginctl enable-linger "$USER"
 ```
 
 ## 3. Verify

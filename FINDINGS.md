@@ -1,4 +1,4 @@
-# Capability findings (Phase 1, verified 2026-07-27 on VPS mhx-lab)
+# Capability findings (Phase 1, verified 2026-07-27 on a single production VPS)
 
 These were tested live, not assumed from vendor docs, per the master plan's
 instruction to verify capability before building the guard on top of it.
@@ -116,10 +116,10 @@ the final boundary.
 
 ## Gemini CLI
 
-- Authentication was not completed for this pilot (Maike's call, 2026-07-27:
+- Authentication was not completed for this pilot (decision made 2026-07-27:
   "Sign in with Google" OAuth succeeded but the CLI still demanded a paired
-  API key afterward; decision was to skip and treat as a separate pending
-  item). `write_file`/`replace`/`run_shell_command` hook payload shapes are
+  API key afterward; skipped and treated as a separate pending item).
+  `write_file`/`replace`/`run_shell_command` hook payload shapes are
   therefore **unverified** - the `gemini` adapter in this kit is a stub, not
   a tested implementation. Do not rely on it for a Gemini-as-executor
   scenario without re-verifying.
@@ -128,9 +128,8 @@ the final boundary.
 
 The master plan's swap/build-lock sizing (8-16GB swap, N concurrent heavy
 tasks) was calculated for a KVM8 the plan originally assumed - the VPS
-actually contracted and provisioned is a KVM4 (half the specs, see Session
-#474 of `NexusLab/SESSION_STATE.md` for the downgrade reasoning). Real specs
-confirmed live via `nproc`/`free -h`/`df -h`:
+actually contracted and provisioned is a KVM4 (half the specs, downgraded
+earlier for cost reasons). Real specs confirmed live via `nproc`/`free -h`/`df -h`:
 
 - 4 vCPU, 15GB RAM, **0 swap** (until this finding), 193GB disk (183GB free)
 
@@ -153,6 +152,6 @@ for):
   compounding it.
 
 Not done, and deliberately out of scope here: resizing the VPS itself (would
-cost money, needs an explicit ROI conversation per DIRETRIZES) and fixing
-the CI queue depth itself (more runners, or job-level concurrency limits in
-each workflow - a bigger change than this reaudit's scope).
+cost money, needs an explicit ROI conversation) and fixing the CI queue depth
+itself (more runners, or job-level concurrency limits in each workflow - a
+bigger change than this reaudit's scope).

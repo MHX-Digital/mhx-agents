@@ -1,9 +1,10 @@
 # agent-architecture-kit
 
-Phase 1 implementation of the anti-duplication multi-agent mechanism described
-in `MHX-MULTI-AGENT-ARCHITECTURE-FINAL-2026-07-27.md`, scoped to the LexNotify
-pilot on VPS `mhx-lab`. See `FINDINGS.md` for the real, tested capability
-findings this kit's guard logic relies on.
+Phase 1 implementation of a deterministic anti-duplication guard for
+multi-agent coding tools (Claude Code, Codex). Piloted against a real
+production codebase (LexNotify, a Next.js SaaS) on a single self-managed VPS.
+See `FINDINGS.md` for the real, tested capability findings this kit's guard
+logic relies on.
 
 ## Commands
 
