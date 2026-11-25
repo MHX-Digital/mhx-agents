@@ -1,13 +1,11 @@
-# Agent Architecture Kit -- canonical label set (master plan section 10.1).
+# Agent Architecture Kit -- canonical label set.
 # Apply to a new Tier 1/2 repo with:
 #   gh label create <name> --repo <org>/<repo> --color <hex> --description "<description>"
 # (or any github-label-sync-style tool that reads this format).
 #
 # English names are canonical (repo docs/labels are English per project convention).
-# The first LexNotify-Web rollout (2026-07-28) used Portuguese verdict:* names
-# (verdict:novo/estender/duplicado/ambiguo) -- that repo's existing labels were left
-# alone rather than renamed under active use, but any *new* Tier 1/2 repo should use
-# this canonical set from the start.
+# Adopt these names explicitly when onboarding a project; this file does not
+# change existing labels or permissions.
 
 - name: "architecture:tier-1"
   color: "0E8A16"
@@ -41,7 +39,7 @@
   description: "Proposed plan reviewed and approved before execution starts"
 - name: "state:blocked"
   color: "B60205"
-  description: "Duplicate, ambiguity, conflict, expired decision, or scope collision (master plan section 3.1)"
+  description: "Duplicate, ambiguity, conflict, expired decision, or scope collision"
 - name: "override:active"
   color: "5A32A3"
   description: "A protected override (aak override create) is currently authorizing scoped writes on this issue"

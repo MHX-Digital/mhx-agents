@@ -38,13 +38,13 @@ def test_architecture_map_accepts_real_scan_output():
     schema = _load_schema("architecture-map.schema.json")
     doc = {
         "schemaVersion": "1.0",
-        "repoId": "mhx/lexnotify",
+        "repoId": "example/catalog",
         "generatedAt": "2026-07-28T12:00:00+00:00",
         "sourceSha": "abc123",
         "extractionMethod": "typescript-regex-v1",
         "coverage": "app/, src/ (TypeScript/Next.js only)",
         "components": [
-            {"path": "src/domain/cases/case-chat.ts", "exports": ["getOrCreateCaseChat"], "layer": "domain"},
+            {"path": "src/domain/chat/workspace-chat.ts", "exports": ["getOrCreateWorkspaceChat"], "layer": "domain"},
             {"path": "src/lib/reexport.ts", "exports": [], "layer": "lib", "reExportsFrom": ["./other"]},
         ],
     }
@@ -55,7 +55,7 @@ def test_architecture_map_rejects_component_missing_layer():
     schema = _load_schema("architecture-map.schema.json")
     doc = {
         "schemaVersion": "1.0",
-        "repoId": "mhx/lexnotify",
+        "repoId": "example/catalog",
         "generatedAt": "2026-07-28T12:00:00+00:00",
         "sourceSha": "abc123",
         "extractionMethod": "typescript-regex-v1",
@@ -70,7 +70,7 @@ def test_architecture_map_rejects_missing_required_field():
     schema = _load_schema("architecture-map.schema.json")
     doc = {
         "schemaVersion": "1.0",
-        "repoId": "mhx/lexnotify",
+        "repoId": "example/catalog",
         "generatedAt": "2026-07-28T12:00:00+00:00",
         "sourceSha": "abc123",
         "coverage": "app/, src/",
@@ -84,8 +84,8 @@ def test_override_accepts_real_create_override_output():
     schema = _load_schema("override.schema.json")
     override = {
         "schemaVersion": "1.0",
-        "repoId": "mhx/lexnotify",
-        "issue": 734,
+        "repoId": "example/catalog",
+        "issue": 123,
         "scope": "src/chat/**",
         "reason": "Approved replacement after ADR-0042",
         "createdAt": "2026-07-28T12:00:00+00:00",
@@ -99,8 +99,8 @@ def test_override_rejects_malformed_authorization_hash():
     schema = _load_schema("override.schema.json")
     override = {
         "schemaVersion": "1.0",
-        "repoId": "mhx/lexnotify",
-        "issue": 734,
+        "repoId": "example/catalog",
+        "issue": 123,
         "scope": "src/chat/**",
         "reason": "Approved replacement after ADR-0042",
         "createdAt": "2026-07-28T12:00:00+00:00",
@@ -115,7 +115,7 @@ def test_override_rejects_missing_issue():
     schema = _load_schema("override.schema.json")
     override = {
         "schemaVersion": "1.0",
-        "repoId": "mhx/lexnotify",
+        "repoId": "example/catalog",
         "scope": "src/chat/**",
         "reason": "Approved replacement after ADR-0042",
         "createdAt": "2026-07-28T12:00:00+00:00",
@@ -130,7 +130,7 @@ def test_override_rejects_non_positive_issue():
     schema = _load_schema("override.schema.json")
     override = {
         "schemaVersion": "1.0",
-        "repoId": "mhx/lexnotify",
+        "repoId": "example/catalog",
         "issue": 0,
         "scope": "src/chat/**",
         "reason": "Approved replacement after ADR-0042",
@@ -146,7 +146,7 @@ def test_project_manifest_rejects_unknown_tier():
     schema = _load_schema("project.schema.json")
     manifest = {
         "schemaVersion": "1.0",
-        "repoId": "mhx/lexnotify",
+        "repoId": "example/catalog",
         "tier": 7,
         "defaultBranch": "main",
         "kitVersion": "1.0.0",
@@ -160,15 +160,15 @@ def test_task_decision_accepts_minimal_valid_decision():
     decision = {
         "schemaVersion": "1.0",
         "kitVersion": "1.0.0",
-        "repoId": "mhx/lexnotify",
+        "repoId": "example/catalog",
         "tier": 1,
-        "branch": "issue-734/unify-case-chat",
+        "branch": "task-123/workspace-chat",
         "executor": "claude",
         "baseSha": "abc123",
         "createdAt": "2026-07-28T12:00:00+00:00",
         "expiresAt": "2026-07-29T12:00:00+00:00",
         "verdict": "ESTENDER_CONFIRMADO",
-        "allowedExistingPaths": ["src/domain/cases/case-chat.ts"],
+        "allowedExistingPaths": ["src/domain/chat/workspace-chat.ts"],
         "allowedNewPaths": [],
         "protectedDomains": ["chat"],
     }

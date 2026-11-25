@@ -2,7 +2,15 @@ name: MCP release gates
 
 on:
   pull_request:
+  push:
+    branches: [main]
   workflow_dispatch:
+    inputs:
+      canary_failure:
+        description: "Deliberately fail with disposable fictional fixtures (maintainer validation only)"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -45,7 +53,7 @@ jobs:
       - name: Reject whitespace errors
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: git diff --check "$BASE_SHA...HEAD"
+        run: python scripts/ci/check_whitespace.py
       - name: Validate schemas and manifests
         run: |
           python - <<'PY'
@@ -66,8 +74,19 @@ jobs:
           tests/test_index_lifecycle.py
           tests/test_mcp_security.py
           tests/test_mcp_integrated_resilience.py
+      - name: Run real whitespace rejection canaries
+        run: python -m pytest -q tests/test_whitespace_gate.py
+      - name: Run synthetic read-only stdio canary
+        run: python scripts/ci/smoke_readonly_mcp.py --output "canary-${{ matrix.python }}.json"
+      - name: Verify wheel and sdist outside checkout
+        run: |
+          python -m pip download --only-binary=:all: --requirement requirements-ci.txt --dest "$RUNNER_TEMP/aak-wheelhouse"
+          python scripts/ci/check_distributions.py --wheelhouse "$RUNNER_TEMP/aak-wheelhouse" --output "package-${{ matrix.python }}.json"
       - name: Scan tracked files for high-confidence secrets
         run: python scripts/ci/check_secrets.py
+      - name: Deliberate failure canary (manual opt-in only)
+        if: github.event_name == 'workflow_dispatch' && inputs.canary_failure
+        run: python scripts/ci/failure_canary.py
       - name: Upload sanitized test report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -75,6 +94,15 @@ jobs:
           name: junit-python-${{ matrix.python }}
           path: junit-${{ matrix.python }}.xml
           if-no-files-found: error
+          retention-days: 7
+      - name: Upload synthetic package receipts
+        if: success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: package-python-${{ matrix.python }}
+          path: |
+            package-${{ matrix.python }}.json
+            canary-${{ matrix.python }}.json
           retention-days: 7
 
   dependency-audit:

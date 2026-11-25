@@ -1,13 +1,6 @@
-"""Rust language adapter for the architecture scanner.
+"""Regex-based Rust capability extraction for module exports and public impl methods.
 
-Regex-based (same philosophy as the TypeScript/Python adapters, not a full
-syn/AST parse). Confirmed against real source (Quantitativo's MEV bot,
-statum-fi's Anchor/keeper crates) before writing these patterns: idiomatic
-Rust (rustfmt default) uses 4-space indentation and puts `pub` items either
-at module top level or as `pub fn` methods inside `impl Type { ... }` blocks
--- the same "capability lives inside a member block, not a top-level
-export" shape that TypeScript's class-method gap (kit issue #35) had.
-Handled here from the start instead of needing a follow-up fix.
+Coverage is heuristic, not a full Rust AST or semantic analysis.
 """
 import re
 from pathlib import Path
@@ -66,9 +59,7 @@ def _extract_impl_method_names(text: str) -> set[str]:
 
 
 def infer_layer(rel_path: str) -> str:
-    """First path segment under the scanned source root - matches how this
-    portfolio's Rust projects are organized (Quantitativo's apps/bot/src/{data,
-    decision,execution,ledger,alerts}/, statum-fi's crates/*/src/)."""
+    """Infer a layer from the first source-path segment, with shared code explicit."""
     parts = rel_path.split("/")
     if len(parts) < 2:
         return "other"

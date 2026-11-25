@@ -279,7 +279,7 @@ def search_capability(
     something similar doesn't already exist. Case-insensitive.
 
     Args:
-        repoId: repo identifier from the project manifest (e.g. "mhx/lexnotify")
+        repoId: repo identifier from the project manifest (e.g. "example/catalog")
         query: search term (e.g. "chat", "notification", "getOrCreate")
         limit: max results to return (default 20)
 
@@ -308,8 +308,8 @@ def get_component(
     """Return the full architecture-map entry for a component by exact path.
 
     Args:
-        repoId: repo identifier from the project manifest (e.g. "mhx/lexnotify")
-        componentId: file path relative to repo root (e.g. "src/lib/case-chat.ts")
+        repoId: repo identifier from the project manifest (e.g. "example/catalog")
+        componentId: file path relative to repo root (e.g. "src/lib/greetings.ts")
 
     Returns:
         {path, exports, layer}, or {"error": "..."} if not found or repoId mismatch.
@@ -458,7 +458,7 @@ def get_map_status(
     might be stale before trusting an answer from the other tools.
 
     Args:
-        repoId: repo identifier from the project manifest (e.g. "mhx/lexnotify")
+        repoId: repo identifier from the project manifest (e.g. "example/catalog")
 
     Returns:
         {generatedAt, sourceSha, coverage, componentCount, extractionMethod},
@@ -484,7 +484,7 @@ def verify_references(
     not valid evidence (master plan section 3.5).
 
     Args:
-        repoId: repo identifier from the project manifest (e.g. "mhx/lexnotify")
+        repoId: repo identifier from the project manifest (e.g. "example/catalog")
         paths: file paths to verify (relative to repo root)
         symbols: exported symbol names to verify (searched across all components)
 

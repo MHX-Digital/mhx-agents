@@ -1,12 +1,7 @@
-"""aak portfolio scan: deterministic, tier-scored inventory of a projects
-directory (e.g. D:\\NexusLab\\projects on Windows, ~/projects on Linux).
+"""Portfolio inventory with deterministic tier scoring for a selected directory.
 
-Language detection reuses the marker-file table already validated in the
-nexuslab-portfolio MCP (D:\\Atlas\\Tools\\scripts\\mcp-portfolio\\server.py) -
-duplicated here rather than imported since that MCP is Windows-only tooling
-and this needs to run on both the VPS and Windows. Score is 5 independently
-checkable signals worth 20 points each, not a black-box model - every point
-traces back to a file or directory that does or doesn't exist.
+The caller explicitly selects the directory; no host or organization inventory
+is assumed by the package.
 """
 from __future__ import annotations
 

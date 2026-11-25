@@ -8,10 +8,8 @@ transport/SDK, same precedent already proven in
 test_duplication_golden_corpus.py (which calls check_duplication() this way).
 
 check_duplication() is intentionally not re-tested here: it already has
-dedicated coverage in test_duplication_golden_corpus.py. serve() is
-intentionally not tested either: it blocks in mcp.run() and has no
-behavior of its own beyond load_manifest() (already covered by
-tests for aak.manifest) -- an explicit, documented gap, not an oversight.
+dedicated coverage in test_duplication_golden_corpus.py. The separate synthetic stdio canary covers the actual server transport; these
+unit tests intentionally exercise individual return shapes.
 """
 import json
 import subprocess
@@ -20,7 +18,7 @@ import pytest
 
 from aak import mcp_server as mcp_server_mod
 
-REPO_ID = "mhx/test-repo"
+REPO_ID = "example/test-repo"
 
 
 class _TrustedTestBoundary:

@@ -33,21 +33,21 @@ def _commit(repo: Path, name: str) -> str:
 
 def _manifest(repo: Path) -> ProjectManifest:
     return ProjectManifest(
-        schema_version="1.0", repo_id="lexnotify/web", tier=1,
+        schema_version="1.0", repo_id="example/catalog", tier=1,
         default_branch="main", kit_version="1.0", source_roots=["src"],
         architecture={"map": "docs/architecture/ARCHITECTURE_MAP.json", "adrs": "docs/adr"}, repo_root=repo,
     )
 
 
 def _doc(commit: str, component="src/a.ts", **overrides):
-    doc = {"schemaVersion": "1.0", "repoId": "lexnotify/web", "sourceSha": commit,
+    doc = {"schemaVersion": "1.0", "repoId": "example/catalog", "sourceSha": commit,
            "generatedAt": "2026-07-29T00:00:00Z",
            "components": [{"path": component, "exports": ["A"], "layer": "lib"}]}
     doc.update(overrides)
     return doc
 
 
-def _token(tenant="avancard-fenix", project="lexnotify/web", tools=TOOLS, jti="integrated"):
+def _token(tenant="tenant-example", project="example/catalog", tools=TOOLS, jti="integrated"):
     return issue_token("test", KEY, {"sub": "integration", "project": project, "tenant": tenant,
         "role": "auditor", "tools": sorted(tools), "exp": NOW + 3600, "jti": jti})
 
@@ -71,12 +71,12 @@ def integrated(tmp_path, monkeypatch):
     return tmp_path, sha, manifest, boundary
 
 
-def _status(sha, token, tenant="avancard-fenix"):
-    return mcp_server.get_map_status("lexnotify/web", sha, tenantId=tenant, authToken=token)
+def _status(sha, token, tenant="tenant-example"):
+    return mcp_server.get_map_status("example/catalog", sha, tenantId=tenant, authToken=token)
 
 
-def _component(sha, token, tenant="avancard-fenix"):
-    return mcp_server.get_component("lexnotify/web", "src/a.ts", sha, tenantId=tenant, authToken=token)
+def _component(sha, token, tenant="tenant-example"):
+    return mcp_server.get_component("example/catalog", "src/a.ts", sha, tenantId=tenant, authToken=token)
 
 
 def test_combined_auth_and_freshness_matrix_does_not_leak(integrated):
@@ -218,8 +218,8 @@ def test_current_tool_contracts_keep_names_and_optional_compatibility_parameters
 def test_concurrent_authorized_queries_are_isolated(integrated):
     _, sha, _, _ = integrated
     def query(index):
-        tenant = "avancard-fenix" if index % 2 == 0 else "other"
-        token_tenant = tenant if index % 4 != 3 else "avancard-fenix"
+        tenant = "tenant-example" if index % 2 == 0 else "other"
+        token_tenant = tenant if index % 4 != 3 else "tenant-example"
         return _status(sha, _token(tenant=token_tenant, jti=f"load-{index}"), tenant=tenant)
     with ThreadPoolExecutor(max_workers=32) as pool:
         results = list(pool.map(query, range(500)))

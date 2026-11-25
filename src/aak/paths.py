@@ -6,7 +6,11 @@ master plan). Overridable via AAK_STATE_ROOT for local/dev use.
 import os
 from pathlib import Path
 
-KIT_ROOT = Path(__file__).resolve().parents[2]
+# Source installs protect the repository; installed distributions protect their
+# own package, rather than treating all of the interpreter's lib directory as kit.
+_SOURCE_ROOT = Path(__file__).resolve().parents[2]
+KIT_ROOT = (_SOURCE_ROOT if (_SOURCE_ROOT / "src" / "aak" / "paths.py").resolve() == Path(__file__).resolve()
+            else Path(__file__).resolve().parent)
 
 
 def state_root() -> Path:

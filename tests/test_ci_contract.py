@@ -25,7 +25,10 @@ def test_release_workflow_runs_every_critical_suite_and_security_gate():
         "tests/test_mcp_integrated_resilience.py",
         "python scripts/ci/check_secrets.py",
         "python -m pip_audit --strict",
-        "git diff --check",
+        "python scripts/ci/check_whitespace.py",
+        "tests/test_whitespace_gate.py",
+        "python scripts/ci/check_distributions.py",
+        "python scripts/ci/smoke_readonly_mcp.py",
         "python -m pytest -q --junitxml",
     }
     assert not (required - set(fragment for fragment in required if fragment in content))

@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "architecture-map": {
-      "command": "/home/mhx/agent-architecture-kit/bin/aak",
-      "args": ["mcp", "serve", "--repo-root", "/home/mhx/projects/<repo>"]
+      "command": "/opt/mhx-agents/bin/aak",
+      "args": ["mcp", "serve", "--repo-root", "/path/to/project"]
     }
   }
 }
