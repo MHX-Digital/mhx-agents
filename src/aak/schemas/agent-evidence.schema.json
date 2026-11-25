@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "agent-evidence.schema.json",
+  "title": "Agent Architecture Kit - Independent Agent Evidence",
+  "type": "object",
+  "required": ["schemaVersion", "agent", "repoId", "createdAt", "verdict", "referencedPaths"],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "agent": { "type": "string", "enum": ["gemini", "codex", "claude", "manual"] },
+    "repoId": { "type": "string" },
+    "createdAt": { "type": "string" },
+    "verdict": { "type": "string" },
+    "referencedPaths": { "type": "array", "items": { "type": "string" } },
+    "notes": { "type": "string" }
+  },
+  "additionalProperties": true
+}

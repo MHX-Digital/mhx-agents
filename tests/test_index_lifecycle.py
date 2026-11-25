@@ -26,7 +26,7 @@ def lifecycle(tmp_path):
     subprocess.run(["git", "-C", str(tmp_path), "add", "tracked.txt"], check=True)
     subprocess.run(["git", "-C", str(tmp_path), "commit", "-m", "fixture"], check=True, capture_output=True)
     manifest = ProjectManifest(
-        schema_version="1.0", repo_id="lexnotify/web", tier=1,
+        schema_version="1.0", repo_id="example/catalog", tier=1,
         default_branch="main", kit_version="1.0", source_roots=["src"],
         architecture={"map": "docs/architecture/ARCHITECTURE_MAP.json"}, repo_root=tmp_path,
     )
@@ -35,7 +35,7 @@ def lifecycle(tmp_path):
 
 def _doc(commit: str, path: str = "src/a.ts") -> dict:
     return {
-        "schemaVersion": "1.0", "repoId": "lexnotify/web", "sourceSha": commit,
+        "schemaVersion": "1.0", "repoId": "example/catalog", "sourceSha": commit,
         "generatedAt": "2026-07-29T00:00:00+00:00", "components": [
             {"path": path, "exports": ["A"], "layer": "lib"},
         ],
@@ -121,7 +121,7 @@ def test_orphaned_lock_is_preserved_and_recovered(lifecycle):
     service, commit = lifecycle
     service.state_root.mkdir(parents=True)
     service.lock_path.write_text(json.dumps({
-        "runId": "interrupted", "pid": 999999999, "repositoryId": "lexnotify/web",
+        "runId": "interrupted", "pid": 999999999, "repositoryId": "example/catalog",
     }), encoding="utf-8")
     result = service.publish("main", commit, _builder(_doc(commit)), operator="recovery-test")
     assert result.status == "published"

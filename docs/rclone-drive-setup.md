@@ -34,7 +34,7 @@ Verify: `rclone lsd gdrive:` should list your Drive's top-level folders.
 ```
 ssh your-vps
 mkdir -p ~/.config/systemd/user
-cp ~/agent-architecture-kit/rclone-drive.service ~/.config/systemd/user/
+cp ~/mhx-agents/rclone-drive.service ~/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user enable --now rclone-drive.service
 ```

@@ -1,12 +1,6 @@
-"""Dart/Flutter language adapter for the architecture scanner.
+"""Dart/Flutter heuristic extraction of public declarations and class members.
 
-Regex-based (same philosophy as the other adapters, not a full parse).
-Confirmed against real source (Rodax's design system + core/api_client.dart)
-before writing these patterns: `dart format` uses 2-space indentation, and
-Dart's privacy is a naming convention (leading underscore), not a keyword --
-same shape as the Python adapter's `_private` handling, confirmed against
-the real, extremely common `class _FooState extends State<Foo>` pattern
-that every StatefulWidget companion class follows.
+Generated files and underscore-prefixed declarations are excluded.
 """
 import re
 from pathlib import Path
@@ -72,7 +66,7 @@ def _extract_member_names(text: str) -> set[str]:
 def infer_layer(rel_path: str) -> str:
     """First path segment under the scanned source root (typically `lib/`)
     - matches Flutter's real feature/layer folder convention confirmed
-    against Rodax: core/, design_system/, features/, routing/, shared/."""
+    against fictional module layouts: core/, design_system/, features/, routing/, shared/."""
     parts = rel_path.split("/")
     if len(parts) < 2:
         return "other"

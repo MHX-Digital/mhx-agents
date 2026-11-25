@@ -1,0 +1,8 @@
+recursive-include schemas *.json
+graft templates
+graft ci
+graft docs
+graft scripts
+graft bin
+include VERSION
+global-exclude __pycache__ *.py[cod]

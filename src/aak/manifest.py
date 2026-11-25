@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 from jsonschema import validate, ValidationError
 
-from .paths import KIT_ROOT
+from .schema_resources import load_schema
 
 
 class ManifestError(Exception):
@@ -39,9 +39,7 @@ class ProjectManifest:
 
 
 def _schema():
-    schema_path = KIT_ROOT / "schemas" / "project.schema.json"
-    with open(schema_path, encoding="utf-8") as f:
-        return json.load(f)
+    return load_schema("project.schema.json")
 
 
 def load_manifest(repo_root: Path) -> ProjectManifest:

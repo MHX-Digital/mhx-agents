@@ -15,8 +15,8 @@ Honesty notes (deliberate, not oversights):
   tooling it hasn't bootstrapped yet), not a silent success -- the detail
   string says so either way.
 - There is no `architecture-duplication` check here. That needs a real
-  DUPLICATION_INCIDENTS.json golden corpus, which doesn't exist yet (see
-  README's Scope note). Callers that want that check must not infer it ran.
+  project-specific DUPLICATION_INCIDENTS.json evaluation. Callers must not
+  infer that it ran merely because schema and drift checks passed.
 """
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ import jsonschema
 
 from .guard import evaluate_precommit
 from .manifest import ManifestError, ProjectManifest, load_manifest
-from .paths import KIT_ROOT
+from .schema_resources import load_schema
 
 
 @dataclass
@@ -40,9 +40,7 @@ class VerifyCheck:
 
 
 def _load_schema(filename: str) -> dict:
-    import json
-    with open(KIT_ROOT / "schemas" / filename, encoding="utf-8") as f:
-        return json.load(f)
+    return load_schema(filename)
 
 
 def _check_map_schema(manifest: ProjectManifest) -> VerifyCheck:

@@ -1,4 +1,4 @@
 jsonschema
-mcp>=1.0,<2
+mcp>=1.30.0,<2
 pyyaml
 pytest

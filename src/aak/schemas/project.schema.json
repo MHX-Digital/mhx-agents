@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "project.schema.json",
+  "title": "Agent Architecture Kit - Project Manifest",
+  "type": "object",
+  "required": ["schemaVersion", "repoId", "tier", "defaultBranch", "kitVersion"],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "repoId": { "type": "string", "minLength": 1 },
+    "tier": { "type": "integer", "enum": [1, 2, 3] },
+    "defaultBranch": { "type": "string", "minLength": 1 },
+    "kitVersion": { "type": "string", "minLength": 1 },
+    "sourceRoots": { "type": "array", "items": { "type": "string" } },
+    "protectedDomains": { "type": "array", "items": { "type": "string" } },
+    "generatedPaths": { "type": "array", "items": { "type": "string" } },
+    "validation": {
+      "type": "object",
+      "properties": {
+        "lint": { "type": "string" },
+        "typecheck": { "type": "string" },
+        "test": { "type": "string" },
+        "build": { "type": "string" }
+      },
+      "additionalProperties": { "type": "string" }
+    },
+    "architecture": {
+      "type": "object",
+      "properties": {
+        "map": { "type": "string" },
+        "incidents": { "type": "string" },
+        "adrs": { "type": "string" }
+      }
+    }
+  },
+  "additionalProperties": false
+}

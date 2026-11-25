@@ -110,7 +110,7 @@ def validate_decision(decision: dict, repo_root: Path) -> tuple[bool, str]:
 
     except DecisionError as e:
         return False, str(e)
-    except (KeyError, ValueError) as e:
+    except (KeyError, TypeError, ValueError) as e:
         return False, f"malformed decision: {e}"
 
     return True, "valid"

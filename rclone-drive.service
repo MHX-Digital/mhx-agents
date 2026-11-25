@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=%h/agent-architecture-kit/bin/mount-drive.sh
+ExecStart=%h/mhx-agents/bin/mount-drive.sh
 ExecStop=/bin/fusermount -uz %h/gdrive
 Restart=always
 RestartSec=10

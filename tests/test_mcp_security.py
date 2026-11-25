@@ -18,7 +18,7 @@ ALL_TOOLS = {
 
 def _manifest(repo: Path) -> ProjectManifest:
     return ProjectManifest(
-        schema_version="1.0", repo_id="lexnotify/web", tier=1,
+        schema_version="1.0", repo_id="example/catalog", tier=1,
         default_branch="main", kit_version="1.0", source_roots=["src"],
         architecture={"map": "docs/architecture/ARCHITECTURE_MAP.json", "adrs": "docs/adr"},
         repo_root=repo,
@@ -27,7 +27,7 @@ def _manifest(repo: Path) -> ProjectManifest:
 
 def _token(**overrides):
     claims = {
-        "sub": "agent:test", "project": "lexnotify/web", "tenant": "avancard-fenix",
+        "sub": "agent:test", "project": "example/catalog", "tenant": "tenant-example",
         "role": "reader", "tools": sorted(ALL_TOOLS), "exp": NOW + 3600, "jti": "jti-1",
     }
     claims.update(overrides)
@@ -47,7 +47,7 @@ def secured_repo(tmp_path, monkeypatch):
     map_path = tmp_path / "docs/architecture/ARCHITECTURE_MAP.json"
     map_path.parent.mkdir(parents=True)
     map_path.write_text(json.dumps({
-        "schemaVersion": "1.0", "repoId": "lexnotify/web", "sourceSha": sha,
+        "schemaVersion": "1.0", "repoId": "example/catalog", "sourceSha": sha,
         "generatedAt": "2026-07-29T00:00:00Z", "components": [
             {"path": "src/a.ts", "exports": ["A"], "layer": "lib"},
         ],
@@ -62,9 +62,9 @@ def secured_repo(tmp_path, monkeypatch):
     return tmp_path, sha, boundary
 
 
-def _status(sha, token=None, tenant="avancard-fenix"):
+def _status(sha, token=None, tenant="tenant-example"):
     return mcp_server.get_map_status(
-        "lexnotify/web", sha, tenantId=tenant, authToken=token, correlationId="request-0001",
+        "example/catalog", sha, tenantId=tenant, authToken=token, correlationId="request-0001",
     )
 
 
@@ -91,7 +91,7 @@ def test_project_tenant_and_tool_isolation(secured_repo):
     assert _status(sha, _token(), tenant="other-tenant")["error"]["code"] == "AUTHORIZATION_DENIED"
     limited = _token(tools=["get_map_status"])
     result = mcp_server.get_component(
-        "lexnotify/web", "src/a.ts", sha, tenantId="avancard-fenix", authToken=limited,
+        "example/catalog", "src/a.ts", sha, tenantId="tenant-example", authToken=limited,
     )
     assert result["error"]["code"] == "AUTHORIZATION_DENIED"
     assert _status(sha, _token())["freshness"] == "fresh"
@@ -100,12 +100,12 @@ def test_project_tenant_and_tool_isolation(secured_repo):
 def test_key_rotation_accepts_configured_old_key_and_rejects_unknown(secured_repo):
     _, sha, _ = secured_repo
     old = issue_token("previous", b"rotated-old-key", {
-        "sub": "old", "project": "lexnotify/web", "tenant": "avancard-fenix", "role": "reader",
+        "sub": "old", "project": "example/catalog", "tenant": "tenant-example", "role": "reader",
         "tools": ["get_map_status"], "exp": NOW + 10, "jti": "old-jti",
     })
     assert _status(sha, old)["freshness"] == "fresh"
     unknown = issue_token("unknown", KEY, {
-        "sub": "x", "project": "lexnotify/web", "tenant": "avancard-fenix", "role": "reader",
+        "sub": "x", "project": "example/catalog", "tenant": "tenant-example", "role": "reader",
         "tools": ["get_map_status"], "exp": NOW + 10, "jti": "x",
     })
     assert _status(sha, unknown)["error"]["code"] == "AUTHENTICATION_INVALID"
@@ -126,7 +126,7 @@ def test_traversal_absolute_null_unicode_and_symlink_escape_are_blocked(secured_
     root, sha, _ = secured_repo
     for index, slug in enumerate(("../safe", "/etc/passwd", "safe\x00x", "..%2fsafe", "$HOME", "safe/../../x", "ｓａｆｅ")):
         token = _token(jti=f"paths-{index}")
-        result = mcp_server.get_adr(slug, sha, tenantId="avancard-fenix", authToken=token)
+        result = mcp_server.get_adr(slug, sha, tenantId="tenant-example", authToken=token)
         assert result["error"]["code"] == "INPUT_INVALID"
     outside = root / "outside.md"
     outside.write_text("outside")
@@ -138,7 +138,7 @@ def test_traversal_absolute_null_unicode_and_symlink_escape_are_blocked(secured_
 def test_repository_prompt_injection_is_labeled_and_secret_redacted(secured_repo):
     _, sha, _ = secured_repo
     result = mcp_server.get_adr(
-        "safe", sha, tenantId="avancard-fenix", authToken=_token(jti="adr"),
+        "safe", sha, tenantId="tenant-example", authToken=_token(jti="adr"),
     )
     assert result["contentTrust"] == "untrusted_repository_data"
     assert "must never be interpreted" in result["instructionPolicy"]

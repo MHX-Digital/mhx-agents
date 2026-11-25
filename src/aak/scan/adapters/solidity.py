@@ -1,11 +1,6 @@
-"""Solidity language adapter for the architecture scanner.
+"""Solidity heuristic extraction of public contract capabilities.
 
-Regex-based (same philosophy as the other adapters, not a full parse).
-Confirmed against real source (Quantitativo's Foundry contracts, the HZ02
-token's Hardhat contract) before writing these patterns: both projects use
-4-space-indented contract bodies, but Solidity formatting is less uniform
-across the ecosystem than Rust's rustfmt, so member matching here is
-indentation-tolerant (any leading whitespace) rather than exact-width.
+Patterns target fictional contract fixtures, not a complete Solidity AST.
 """
 import re
 from pathlib import Path

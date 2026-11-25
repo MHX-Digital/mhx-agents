@@ -1,9 +1,6 @@
-"""TypeScript/Next.js language adapter for the architecture scanner.
+"""TypeScript/Next.js heuristic extraction of module exports and public methods.
 
-Extracted behavior-preserving from LexNotify-Web's original
-scripts/agent-architecture/scan_architecture.py. Regex-based, not a full TS
-AST parse - see extraction_method/coverage_text for the documented
-limitations (same text as the original script, unchanged).
+Coverage is declared by the adapter; this is not a semantic TypeScript compiler.
 """
 import re
 from pathlib import Path
@@ -70,7 +67,7 @@ ROUTE_METHOD_RE = re.compile(
 # top-level `export ...` statements, so a method like EventService.publish
 # never shows up when only the class *instance* is exported (`export default
 # eventService`), not the class itself - a real, confirmed false-negative in
-# verify_references against LexNotify-Web's own duplication incidents. This
+# verify_references against synthetic duplication incidents. This
 # is line-based, not a brace-depth parser: a class body is assumed to start
 # at a `class X {` line and end at the first following non-indented,
 # non-blank line (matches this codebase's consistent 2-space, same-line-

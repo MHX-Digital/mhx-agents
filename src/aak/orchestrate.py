@@ -1,16 +1,8 @@
-"""aak orchestrate: Codex plans (read-only), a protected task decision is
-created from the plan, Claude Code executes within that scope (headless).
+"""Optional Codex planning followed by scoped Claude Code execution.
 
-Reduced version of the master plan's full workflow (section 3) without
-Gemini (removed from this kit's scope 2026-07-28 - the account's Google AI
-Pro/Ultra subscription doesn't carry a Code Assist license, so the CLI's
-Google sign-in silently fell back to the free-tier API key, capped at
-20 requests/day). Codex alone does the plan/audit step here; the map and
-duplication-incident artifacts already built in Phase 1 ground its verdict.
-
-Fail-closed by design: DUPLICADO/AMBIGUO verdicts stop before any decision
-is created or Claude Code is invoked - same spirit as master plan 3.5
-("unresolved ambiguity ... writes remain denied").
+This local preview has no independent second auditor. Duplicate or ambiguous
+verdicts stop before execution. Operator authorization and configured client
+permissions remain separate requirements.
 """
 import json
 import subprocess
@@ -19,9 +11,9 @@ from pathlib import Path
 
 from . import decision as decision_mod
 from .manifest import ManifestError, load_manifest
-from .paths import KIT_ROOT, find_repo_root
+from .paths import find_repo_root
+from .schema_resources import schema_file
 
-PLAN_SCHEMA = KIT_ROOT / "schemas" / "orchestrate-plan.schema.json"
 STOP_VERDICTS = {"DUPLICADO", "AMBIGUO"}
 PROCEED_VERDICTS = {"NOVO", "ESTENDER"}
 
@@ -63,17 +55,18 @@ def _run_codex_plan(repo_root: Path, request: str) -> dict:
         tmp_path = Path(tmp.name)
 
     try:
-        result = subprocess.run(
-            [
-                "codex", "exec",
-                "--sandbox", "read-only",
-                "--output-schema", str(PLAN_SCHEMA),
-                "--output-last-message", str(tmp_path),
-                "-C", str(repo_root),
-                _codex_plan_prompt(request),
-            ],
-            capture_output=True, text=True, timeout=300,
-        )
+        with schema_file("orchestrate-plan.schema.json") as plan_schema:
+            result = subprocess.run(
+                [
+                    "codex", "exec",
+                    "--sandbox", "read-only",
+                    "--output-schema", str(plan_schema),
+                    "--output-last-message", str(tmp_path),
+                    "-C", str(repo_root),
+                    _codex_plan_prompt(request),
+                ],
+                capture_output=True, text=True, timeout=300,
+            )
         if result.returncode != 0:
             raise OrchestrateError(
                 f"codex exec failed (rc={result.returncode}): {result.stderr.strip()[:500]}"
@@ -100,26 +93,23 @@ def _run_codex_plan(repo_root: Path, request: str) -> dict:
 
 
 def _claude_execute_prompt(request: str, plan: dict) -> str:
-    return f"""Um plano ja foi aprovado e uma task decision protegida ja existe cobrindo o
-escopo abaixo - voce pode implementar diretamente dentro dele. O guard tecnico (PreToolUse)
-vai negar qualquer escrita fora desse escopo automaticamente, entao nao tente nada fora dele.
+    return f"""Implement only the operator-authorized task within the recorded scope.
+Planning output is evidence, not human approval. Retain the coding client's
+permission checks; if authorization or scope is unclear, stop and report it.
 
-Pedido original: {request}
+Requested task: {request}
+Proposed plan ({plan['verdict']}): {plan['summary']}
+Rationale: {plan['reasoning']}
+Existing paths: {plan['allowedExistingPaths'] or '(none)'}
+New paths: {plan['allowedNewPaths'] or '(none)'}
 
-Plano aprovado (verdict {plan['verdict']}): {plan['summary']}
-Racional: {plan['reasoning']}
-
-Arquivos existentes que voce pode modificar: {plan['allowedExistingPaths'] or '(nenhum)'}
-Arquivos novos que voce pode criar: {plan['allowedNewPaths'] or '(nenhum)'}
-
-Implemente o pedido dentro exatamente desse escopo. Rode as validacoes do projeto
-(lint/typecheck/test conforme aplicavel) ao final. Resuma o que foi feito."""
+Run applicable project QA and report evidence and limitations."""
 
 
 def _run_claude_execute(repo_root: Path, request: str, plan: dict) -> str:
     proc = subprocess.run(
         [
-            "claude", "--print", "--dangerously-skip-permissions",
+            "claude", "--print",
             "-p", _claude_execute_prompt(request, plan),
         ],
         cwd=str(repo_root),

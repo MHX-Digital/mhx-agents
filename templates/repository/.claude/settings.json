@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/mhx/agent-architecture-kit/bin/aak guard pretool --client claude"
+            "command": "/opt/mhx-agents/bin/aak guard pretool --client claude"
           }
         ]
       }
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/mhx/agent-architecture-kit/bin/aak hook prompt-submit"
+            "command": "/opt/mhx-agents/bin/aak hook prompt-submit"
           }
         ]
       }
@@ -26,7 +26,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/mhx/agent-architecture-kit/bin/aak hook session-start"
+            "command": "/opt/mhx-agents/bin/aak hook session-start"
           }
         ]
       }
@@ -36,7 +36,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/mhx/agent-architecture-kit/bin/aak hook stop"
+            "command": "/opt/mhx-agents/bin/aak hook stop"
           }
         ]
       }

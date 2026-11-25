@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "orchestrate-plan.schema.json",
+  "title": "aak orchestrate plan",
+  "description": "Structured plan produced by Codex in read-only planning mode, consumed by aak orchestrate to create a protected task decision. Reduced verdict set (no Gemini in this kit's scope): NOVO/ESTENDER proceed, DUPLICADO/AMBIGUO always stop (fail-closed).",
+  "type": "object",
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": ["NOVO", "ESTENDER", "DUPLICADO", "AMBIGUO"]
+    },
+    "summary": {
+      "type": "string",
+      "description": "One or two sentences describing what will be built or changed."
+    },
+    "reasoning": {
+      "type": "string",
+      "description": "Why this verdict: cite architecture map components and/or duplication incidents consulted."
+    },
+    "allowedExistingPaths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Repo-relative paths of existing files the executor may modify."
+    },
+    "allowedNewPaths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Repo-relative paths of new files the executor may create."
+    }
+  },
+  "required": ["verdict", "summary", "reasoning", "allowedExistingPaths", "allowedNewPaths"],
+  "additionalProperties": false
+}

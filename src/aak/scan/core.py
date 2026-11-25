@@ -1,10 +1,7 @@
-"""Generic architecture-scanner core, language-agnostic.
+"""Generic scanner, deterministic JSON and source-drift verification.
 
-Extracted from LexNotify-Web's scripts/agent-architecture/scan_architecture.py
-(originally TS/Next.js-only). Owns: directory walk, JSON schema output,
---check drift detection, idempotent Markdown section regeneration.
-Language-specific export extraction and layer inference live in adapters
-(aak.scan.adapters.*), which implement the LanguageAdapter interface below.
+Language-specific extraction belongs to adapters. Markdown regeneration updates
+only the designated generated section.
 """
 from __future__ import annotations
 

@@ -25,8 +25,8 @@ class TestPythonAdapter:
         assert result == {"path": "shared/foo.py", "exports": ["Widget", "do_thing"], "layer": "lib/shared"}
 
     def test_underscore_prefixed_names_are_private(self, tmp_path):
-        p = _write(tmp_path, "strategies/kairi/bot.py", "def public_fn():\n    pass\n\n\ndef _private_fn():\n    pass\n")
-        result = self.adapter.scan_file(p, "strategies/kairi/bot.py")
+        p = _write(tmp_path, "strategies/example/bot.py", "def public_fn():\n    pass\n\n\ndef _private_fn():\n    pass\n")
+        result = self.adapter.scan_file(p, "strategies/example/bot.py")
         assert result["exports"] == ["public_fn"]
         assert result["layer"] == "strategies"
 
@@ -159,7 +159,7 @@ class TestRustAdapter:
         assert result["layer"] == "decision"
 
     def test_impl_block_public_methods_recorded(self, tmp_path):
-        """Reproduces the real Quantitativo pattern: DecisionEngine::new /
+        """Exercises a fictional public constructor pattern: DecisionEngine::new /
         ::evaluate live inside `impl DecisionEngine { ... }`, never as
         top-level `pub fn` -- the same gap TS class methods had (issue #35),
         handled here from the start."""
@@ -206,7 +206,7 @@ class TestSolidityAdapter:
         self.adapter = SolidityAdapter()
 
     def test_contract_with_public_external_functions_and_events(self, tmp_path):
-        """Reproduces the real Quantitativo Executor.sol shape."""
+        """Exercises a fictional Executor.sol contract shape."""
         content = (
             "contract Executor {\n"
             "    event Executed(bytes32 indexed id, uint256 profit);\n"
@@ -225,10 +225,10 @@ class TestSolidityAdapter:
         assert result["exports"] == ["Executed", "Executor", "execute"]
 
     def test_multiline_signature_visibility_checked_across_lines(self, tmp_path):
-        """Reproduces the real HZ02.sol shape: visibility comes after the
+        """Reproduces the real example.sol shape: visibility comes after the
         parameter list, which itself wraps across multiple lines."""
         content = (
-            "contract HZ02 {\n"
+            "contract example {\n"
             "    function mintFromBatch(\n"
             "        address to,\n"
             "        uint256 amount\n"
@@ -243,9 +243,9 @@ class TestSolidityAdapter:
             "    }\n"
             "}\n"
         )
-        p = _write(tmp_path, "contracts/HZ02.sol", content)
-        result = self.adapter.scan_file(p, "contracts/HZ02.sol")
-        assert result["exports"] == ["HZ02", "mintFromBatch"]
+        p = _write(tmp_path, "contracts/example.sol", content)
+        result = self.adapter.scan_file(p, "contracts/example.sol")
+        assert result["exports"] == ["example", "mintFromBatch"]
 
     def test_should_skip_vendored_and_build_dirs(self, tmp_path):
         assert self.adapter.should_skip("lib/forge-std/src/Test.sol", tmp_path) is True
@@ -261,7 +261,7 @@ class TestDartAdapter:
         self.adapter = DartAdapter()
 
     def test_class_and_methods(self, tmp_path):
-        """Reproduces the real Rodax ApiClient shape: return-type-prefixed
+        """Exercises a fictional ApiClient declaration: return-type-prefixed
         methods, a private field, and a factory constructor."""
         content = (
             "class ApiClient {\n"
@@ -289,20 +289,20 @@ class TestDartAdapter:
         pattern: `class _FooState extends State<Foo>` is private by
         convention (leading underscore), same as its private members."""
         content = (
-            "class RodaxButton extends StatefulWidget {\n"
-            "  const RodaxButton({super.key});\n"
+            "class ExampleButton extends StatefulWidget {\n"
+            "  const ExampleButton({super.key});\n"
             "}\n"
             "\n"
-            "class _RodaxButtonState extends State<RodaxButton> {\n"
+            "class _ExampleButtonState extends State<ExampleButton> {\n"
             "  void _privateHelper() {}\n"
             "\n"
             "  void build() {}\n"
             "}\n"
         )
-        p = _write(tmp_path, "design_system/atoms/buttons/rodax_button.dart", content)
-        result = self.adapter.scan_file(p, "design_system/atoms/buttons/rodax_button.dart")
-        assert "RodaxButton" in result["exports"]
-        assert "_RodaxButtonState" not in result["exports"]
+        p = _write(tmp_path, "design_system/atoms/buttons/example_button.dart", content)
+        result = self.adapter.scan_file(p, "design_system/atoms/buttons/example_button.dart")
+        assert "ExampleButton" in result["exports"]
+        assert "_ExampleButtonState" not in result["exports"]
         assert "_privateHelper" not in result["exports"]
         assert "build" not in result["exports"]
 
