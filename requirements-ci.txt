@@ -32,8 +32,8 @@ typing-inspection==0.4.2
 typing_extensions==4.16.0
 uvicorn==0.51.0
 build==1.3.0
-setuptools==80.9.0
-wheel==0.45.1
+setuptools==84.1.0
+wheel==0.46.2
 pyproject_hooks==1.3.3
 PyJWT==2.15.1
 Pygments==2.21.0
