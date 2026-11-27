@@ -198,6 +198,12 @@ production rollout are separate work. Local fixtures do not establish client
 activation, cross-host reliability, or production SLOs. The source preview does
 not depend on an external memory, retrieval, compression, or inference gateway.
 
+## Design-engineering skills
+
+UI and motion work uses the pinned, MIT-licensed
+[emilkowalski/skills](https://github.com/emilkowalski/skills) as the approved
+skill source. See [docs/DESIGN_ENGINEERING_SKILLS.md](docs/DESIGN_ENGINEERING_SKILLS.md).
+
 ## Development checks
 
 ```bash
